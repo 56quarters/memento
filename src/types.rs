@@ -1,50 +1,48 @@
-pub struct WhisperFile {
-    header: Header,
-    data: Data,
+// Domain objects that callers would actually work with
+
+
+pub enum ErrorKind {
+}
+
+pub struct WhisperError {
+    repr: ErrorRepr,
+}
+
+enum ErrorRepr {
+}
+
+pub type WhisperResult<T> = Result<T, WhisperError>;
+
+
+// Some metadata?
+pub struct WhisperInfo;
+
+
+pub struct WhisperPoint(f64, i64);
+
+
+impl WhisperPoint {
+    pub fn new(value: f64, timestamp: i64) -> WhisperPoint {
+        WhisperPoint(value, timestamp)
+    }
+
+    pub fn value(&self) -> f64 {
+        self.0
+    }
+
+    pub fn timestamp(&self) -> i64 {
+        self.1
+    }
 }
 
 
-pub struct Header {
-    metadata: Metadata,
-    archive_info: Vec<ArchiveInfo>,
-}
+pub trait WhisperArchive {
 
+    fn info(&self) -> WhisperResult<WhisperInfo>;
 
-pub enum AggregationType {
-    Average,
-    Sum,
-    Last,
-    Max,
-    Min,
-}
+    fn read(&self, from: i64, until: Option<i64>) -> WhisperResult<Vec<WhisperPoint>>;
 
+    fn write(&mut self, point: &WhisperPoint) -> WhisperResult<()>;
 
-pub struct Metadata {
-    aggregation: AggregationType,
-    max_retention: u64,
-    x_files_factor: f64,
-    archive_count: u64,
-}
-
-
-pub struct ArchiveInfo {
-    offset: u64,
-    seconds_per_point: u64,
-    num_points: u64,
-}
-
-
-pub struct Data {
-    archives: Vec<Archive>,
-}
-
-
-pub struct Archive {
-    points: Vec<Point>,
-}
-
-
-pub struct Point {
-    interval: u64,
-    valid: f64,
+    fn write_many(&mut self, values: &[WhisperPoint]) -> WhisperResult<()>;
 }
