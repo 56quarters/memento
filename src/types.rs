@@ -18,19 +18,19 @@ pub type WhisperResult<T> = Result<T, WhisperError>;
 pub struct WhisperInfo;
 
 
-pub struct WhisperPoint(f64, i64);
+pub struct WhisperPoint(u64, f64);
 
 
 impl WhisperPoint {
-    pub fn new(value: f64, timestamp: i64) -> WhisperPoint {
-        WhisperPoint(value, timestamp)
+    pub fn new(timestamp: u64, value: f64) -> WhisperPoint {
+        WhisperPoint(timestamp, value)
     }
 
-    pub fn value(&self) -> f64 {
+    pub fn timestamp(&self) -> u64 {
         self.0
     }
 
-    pub fn timestamp(&self) -> i64 {
+    pub fn value(&self) -> f64 {
         self.1
     }
 }
@@ -40,7 +40,7 @@ pub trait WhisperArchive {
 
     fn info(&self) -> WhisperResult<WhisperInfo>;
 
-    fn read(&self, from: i64, until: Option<i64>) -> WhisperResult<Vec<WhisperPoint>>;
+    fn read(&self, from: u64, until: Option<u64>) -> WhisperResult<Vec<WhisperPoint>>;
 
     fn write(&mut self, point: &WhisperPoint) -> WhisperResult<()>;
 
