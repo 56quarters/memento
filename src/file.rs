@@ -58,7 +58,7 @@ pub struct Archive {
     points: Vec<Point>,
 }
 
-
+// 4 + 8 = 12
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Point {
     timestamp: u32,
@@ -84,12 +84,28 @@ mod tests {
 
         let m1 = Metadata {
             aggregation: AggregationType::Max,
-            max_retention: 86400,
+            max_retention: 300,
             x_files_factor: 0.3,
             archive_count: 1,
         };
 
+        let ai1 = ArchiveInfo {
+            offset: 28,
+            seconds_per_point: 10,
+            num_points: 30,
+        };
 
+        let h1 = Header {
+            metadata: m1,
+            archive_info: vec![ai1],
+        };
 
+        let wf = WhisperFile {
+            header: h1,
+            data: d1,
+        };
+
+        use serde_json;
+        println!("File JSON: {}", serde_json::to_string(&wf).unwrap());
     }
 }
