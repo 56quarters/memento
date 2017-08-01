@@ -29,6 +29,7 @@ pub enum AggregationType {
     AbsMin = 8,
 }
 
+
 // 4 + 4 + 4 + 4 = 16
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Metadata {
@@ -70,7 +71,6 @@ pub struct Point {
 mod tests {
     use super::{WhisperFile, Header, AggregationType, Metadata,
                 ArchiveInfo, Data, Archive, Point};
-
 
     #[test]
     fn test_serialize_to_json() {

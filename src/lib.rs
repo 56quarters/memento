@@ -1,4 +1,7 @@
 // import all the stuff here
+
+#![feature(trace_macros)]
+
 #[macro_use]
 extern crate nom;
 
@@ -9,6 +12,7 @@ extern crate serde_json;
 
 mod cache;
 mod file;
+mod parse;
 mod types;
 
 
