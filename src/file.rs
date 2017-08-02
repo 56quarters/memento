@@ -39,6 +39,23 @@ pub struct Metadata {
     archive_count: u32,
 }
 
+impl Metadata {
+    pub fn new(
+        aggregation: AggregationType,
+        max_retention: u32,
+        x_files_factor: f32,
+        archive_count: u32,
+    ) -> Metadata {
+        Metadata {
+            aggregation: aggregation,
+            max_retention: max_retention,
+            x_files_factor: x_files_factor,
+            archive_count: archive_count,
+        }
+    }
+}
+
+
 // 4 + 4 + 4 = 12
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArchiveInfo {

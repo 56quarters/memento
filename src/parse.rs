@@ -33,22 +33,14 @@ named!(parse_max_retention<&[u8], u32>, call!(parse_u32));
 named!(parse_x_files_factor<&[u8], f32>, call!(parse_f32));
 named!(parse_archive_count<&[u8], u32>, call!(parse_u32));
 
-/*
+
 named!(parse_metadata<&[u8], Metadata>,
        do_parse!(
            agg: call!(parse_aggregation_type) >>
            ret: call!(parse_max_retention) >>
            xff: call!(parse_x_files_factor) >>
            ac: call!(parse_archive_count) >>
-           md: || {
-               Metadata {
-                   aggregation: agg,
-                   max_retention: ret,
-                   x_files_factor: xff,
-                   archive_count: ac,
-               }
-           } >>
+           md: value!(Metadata::new( agg, ret, xff, ac)) >>
            (md)
        )
 );
-*/
