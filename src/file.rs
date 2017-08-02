@@ -39,6 +39,7 @@ pub struct Metadata {
     archive_count: u32,
 }
 
+
 impl Metadata {
     pub fn new(
         aggregation: AggregationType,
@@ -62,6 +63,17 @@ pub struct ArchiveInfo {
     offset: u32,
     seconds_per_point: u32,
     num_points: u32,
+}
+
+
+impl ArchiveInfo {
+    pub fn new(offset: u32, seconds_per_point: u32, num_points: u32) -> ArchiveInfo {
+        ArchiveInfo {
+            offset: offset,
+            seconds_per_point: seconds_per_point,
+            num_points: num_points,
+        }
+    }
 }
 
 

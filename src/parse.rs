@@ -3,7 +3,7 @@
 
 use nom::{be_u32, be_f32, be_f64};
 
-use file::{AggregationType, Metadata};
+use file::{AggregationType, Metadata, ArchiveInfo};
 
 trace_macros!(true);
 
@@ -28,11 +28,9 @@ named!(parse_aggregation_type<&[u8], AggregationType>,
            (agg)
        )
 );
-
 named!(parse_max_retention<&[u8], u32>, call!(parse_u32));
 named!(parse_x_files_factor<&[u8], f32>, call!(parse_f32));
 named!(parse_archive_count<&[u8], u32>, call!(parse_u32));
-
 
 named!(parse_metadata<&[u8], Metadata>,
        do_parse!(
@@ -40,7 +38,21 @@ named!(parse_metadata<&[u8], Metadata>,
            ret: call!(parse_max_retention) >>
            xff: call!(parse_x_files_factor) >>
            ac: call!(parse_archive_count) >>
-           md: value!(Metadata::new( agg, ret, xff, ac)) >>
+           md: value!(Metadata::new(agg, ret, xff, ac)) >>
            (md)
+       )
+);
+
+named!(parse_archive_offset<&[u8], u32>, call!(parse_u32));
+named!(parse_archive_secs_per_point<&[u8], u32>, call!(parse_u32));
+named!(parse_archive_num_points<&[u8], u32>, call!(parse_u32));
+
+named!(parse_archive_info<&[u8], ArchiveInfo>,
+       do_parse!(
+           off: call!(parse_archive_offset) >>
+           spp: call!(parse_archive_secs_per_point) >>
+           np: call!(parse_archive_num_points) >>
+           ai: value!(ArchiveInfo::new(off, spp, np)) >>
+           (ai)
        )
 );
