@@ -7,6 +7,23 @@ pub struct WhisperFile {
     data: Data,
 }
 
+impl WhisperFile {
+    pub fn new(header: Header, data: Data) -> WhisperFile {
+        WhisperFile {
+            header: header,
+            data: data,
+        }
+    }
+
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+
+    pub fn data(&self) -> &Data {
+        &self.data
+    }
+}
+
 
 // 16 + (12 * num)
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,8 +32,25 @@ pub struct Header {
     archive_info: Vec<ArchiveInfo>,
 }
 
+impl Header {
+    pub fn new(metadata: Metadata, archive_info: Vec<ArchiveInfo>) -> Header {
+        Header {
+            metadata: metadata,
+            archive_info: archive_info,
+        }
+    }
 
-#[derive(Debug, Serialize, Deserialize)]
+    pub fn metadata(&self) -> &Metadata {
+        &self.metadata
+    }
+
+    pub fn archive_info(&self) -> &[ArchiveInfo] {
+        &self.archive_info
+    }
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[repr(u32)]
 pub enum AggregationType {
     Average = 1,
@@ -54,6 +88,22 @@ impl Metadata {
             archive_count: archive_count,
         }
     }
+
+    pub fn aggregation(&self) -> AggregationType {
+        self.aggregation
+    }
+
+    pub fn max_retention(&self) -> u32 {
+        self.max_retention
+    }
+
+    pub fn x_files_factor(&self) -> f32 {
+        self.x_files_factor
+    }
+
+    pub fn archive_count(&self) -> u32 {
+        self.archive_count
+    }
 }
 
 
@@ -65,7 +115,6 @@ pub struct ArchiveInfo {
     num_points: u32,
 }
 
-
 impl ArchiveInfo {
     pub fn new(offset: u32, seconds_per_point: u32, num_points: u32) -> ArchiveInfo {
         ArchiveInfo {
@@ -73,6 +122,18 @@ impl ArchiveInfo {
             seconds_per_point: seconds_per_point,
             num_points: num_points,
         }
+    }
+
+    pub fn offset(&self) -> u32 {
+        self.offset
+    }
+
+    pub fn seconds_per_point(&self) -> u32 {
+        self.seconds_per_point
+    }
+
+    pub fn num_points(&self) -> u32 {
+        self.num_points
     }
 }
 
