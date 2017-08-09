@@ -3,16 +3,15 @@
 
 use nom::{be_u32, be_f32, be_f64};
 
-use file::{AggregationType, Metadata, ArchiveInfo, Header};
+use file::{AggregationType, Metadata, ArchiveInfo, Header, Point, Archive};
 
-//trace_macros!(true);
 
 // Basic data types used by the Whisper database format, all big-endian.
 named!(parse_u32<&[u8], u32>, flat_map!(take!(4), be_u32));
 named!(parse_f32<&[u8], f32>, flat_map!(take!(4), be_f32));
 named!(parse_f64<&[u8], f64>, flat_map!(take!(8), be_f64));
 
-// Metadata types
+
 named!(parse_aggregation_type<&[u8], AggregationType>,
        do_parse!(
            val: parse_u32 >>
@@ -31,45 +30,55 @@ named!(parse_aggregation_type<&[u8], AggregationType>,
        )
 );
 
-named!(parse_max_retention<&[u8], u32>, call!(parse_u32));
-named!(parse_x_files_factor<&[u8], f32>, call!(parse_f32));
-named!(parse_archive_count<&[u8], u32>, call!(parse_u32));
 
 named!(parse_metadata<&[u8], Metadata>,
        do_parse!(
-           agg: call!(parse_aggregation_type) >>
-           ret: call!(parse_max_retention) >>
-           xff: call!(parse_x_files_factor) >>
-           ac: call!(parse_archive_count) >>
-           md: value!(Metadata::new(agg, ret, xff, ac)) >>
-           (md)
+           aggregation: call!(parse_aggregation_type) >>
+           max_retention: call!(parse_u32) >>
+           x_files_factor: call!(parse_f32) >>
+           archive_count: call!(parse_u32) >>
+           (Metadata::new(
+               aggregation,
+               max_retention,
+               x_files_factor,
+               archive_count
+           ))
        )
 );
 
-// Archive info types
-named!(parse_archive_offset<&[u8], u32>, call!(parse_u32));
-named!(parse_archive_secs_per_point<&[u8], u32>, call!(parse_u32));
-named!(parse_archive_num_points<&[u8], u32>, call!(parse_u32));
 
 named!(parse_archive_info<&[u8], ArchiveInfo>,
        do_parse!(
-           off: call!(parse_archive_offset) >>
-           spp: call!(parse_archive_secs_per_point) >>
-           np: call!(parse_archive_num_points) >>
-           ai: value!(ArchiveInfo::new(off, spp, np)) >>
-           (ai)
+           offset: call!(parse_u32) >>
+           secs_per_point: call!(parse_u32) >>
+           num_points: call!(parse_u32) >>
+           (ArchiveInfo::new(
+               offset,
+               secs_per_point,
+               num_points
+           ))
        )
 );
 
-// Parse the entire file header
+
 named!(parse_header<&[u8], Header>,
        do_parse!(
            metadata: call!(parse_metadata) >>
            archives: count!(parse_archive_info, metadata.archive_count() as usize) >>
-           header: value!(Header::new(metadata, archives)) >>
-           (header)
+           (Header::new(metadata, archives))
        )
 );
+
+
+named!(parse_point<&[u8], Point>,
+       do_parse!(
+           timestamp: call!(parse_u32) >>
+           value: call!(parse_f64) >>
+           (Point::new(timestamp, value))
+       )
+);
+
+
 
 #[cfg(test)]
 mod tests {
