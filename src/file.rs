@@ -1,7 +1,7 @@
 // read and write to file on disk
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WhisperFile {
     header: Header,
     data: Data,
@@ -26,7 +26,7 @@ impl WhisperFile {
 
 
 // 16 + (12 * num)
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Header {
     metadata: Metadata,
     archive_info: Vec<ArchiveInfo>,
@@ -65,7 +65,7 @@ pub enum AggregationType {
 
 
 // 4 + 4 + 4 + 4 = 16
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
     aggregation: AggregationType,
     max_retention: u32,
@@ -108,7 +108,7 @@ impl Metadata {
 
 
 // 4 + 4 + 4 = 12
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ArchiveInfo {
     offset: u32,
     seconds_per_point: u32,
@@ -138,22 +138,39 @@ impl ArchiveInfo {
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Data {
     archives: Vec<Archive>,
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Archive {
     points: Vec<Point>,
 }
 
 // 4 + 8 = 12
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Point {
     timestamp: u32,
     value: f64,
+}
+
+impl Point {
+    pub fn new(timestamp: u32, value: f64) -> Point {
+        Point {
+            timestamp: timestamp,
+            value: value,
+        }
+    }
+
+    pub fn timestamp(&self) -> u32 {
+        self.timestamp
+    }
+
+    pub fn value(&self) -> f64 {
+        self.value
+    }
 }
 
 
