@@ -1,7 +1,7 @@
 // read and write to file on disk
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct WhisperFile {
     header: Header,
     data: Data,
@@ -27,7 +27,7 @@ impl WhisperFile {
 
 
 // 16 + (12 * num)
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Header {
     metadata: Metadata,
     archive_info: Vec<ArchiveInfo>,
@@ -52,7 +52,7 @@ impl Header {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 #[repr(u32)]
 pub enum AggregationType {
     Average = 1,
@@ -67,7 +67,7 @@ pub enum AggregationType {
 
 
 // 4 + 4 + 4 + 4 = 16
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Metadata {
     aggregation: AggregationType,
     max_retention: u32,
@@ -110,7 +110,7 @@ impl Metadata {
 
 
 // 4 + 4 + 4 = 12
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ArchiveInfo {
     offset: u32,
     seconds_per_point: u32,
@@ -141,7 +141,7 @@ impl ArchiveInfo {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct Data {
     archives: Vec<Archive>,
 }
@@ -160,7 +160,7 @@ impl Data {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct Archive {
     points: Vec<Point>,
 }
@@ -180,7 +180,7 @@ impl Archive {
 
 
 // 4 + 8 = 12
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Point {
     timestamp: u32,
     value: f64,
@@ -207,43 +207,4 @@ impl Point {
 
 #[cfg(test)]
 mod tests {
-    use super::{WhisperFile, Header, AggregationType, Metadata,
-                ArchiveInfo, Data, Archive, Point};
-
-    #[test]
-    fn test_serialize_to_json() {
-        let p1 = Point { timestamp: 1501355048, value: 45.9 };
-        let p2 = Point { timestamp: 1501355058, value: 30.8 };
-        let p3 = Point { timestamp: 1501355068, value: 46.0 };
-        let p4 = Point { timestamp: 1501355078, value: 35.3 };
-
-        let a1 = Archive { points: vec![p1, p2, p3, p4] };
-        let d1 = Data { archives: vec![a1] };
-
-        let m1 = Metadata {
-            aggregation: AggregationType::Max,
-            max_retention: 300,
-            x_files_factor: 0.3,
-            archive_count: 1,
-        };
-
-        let ai1 = ArchiveInfo {
-            offset: 28,
-            seconds_per_point: 10,
-            num_points: 30,
-        };
-
-        let h1 = Header {
-            metadata: m1,
-            archive_info: vec![ai1],
-        };
-
-        let wf = WhisperFile {
-            header: h1,
-            data: d1,
-        };
-
-        use serde_json;
-        println!("File JSON: {}", serde_json::to_string(&wf).unwrap());
-    }
 }
