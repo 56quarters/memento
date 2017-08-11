@@ -7,6 +7,7 @@ pub struct WhisperFile {
     data: Data,
 }
 
+
 impl WhisperFile {
     pub fn new(header: Header, data: Data) -> WhisperFile {
         WhisperFile {
@@ -31,6 +32,7 @@ pub struct Header {
     metadata: Metadata,
     archive_info: Vec<ArchiveInfo>,
 }
+
 
 impl Header {
     pub fn new(metadata: Metadata, archive_info: Vec<ArchiveInfo>) -> Header {
@@ -115,6 +117,7 @@ pub struct ArchiveInfo {
     num_points: u32,
 }
 
+
 impl ArchiveInfo {
     pub fn new(offset: u32, seconds_per_point: u32, num_points: u32) -> ArchiveInfo {
         ArchiveInfo {
@@ -138,16 +141,43 @@ impl ArchiveInfo {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Data {
     archives: Vec<Archive>,
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+impl Data {
+    pub fn new(archives: Vec<Archive>) -> Data {
+        Data {
+            archives: archives,
+        }
+    }
+
+    pub fn archives(&self) -> &[Archive] {
+        &self.archives
+    }
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Archive {
     points: Vec<Point>,
 }
+
+
+impl Archive {
+    pub fn new(points: Vec<Point>) -> Archive {
+        Archive {
+            points: points
+        }
+    }
+
+    pub fn points(&self) -> &[Point] {
+        &self.points
+    }
+}
+
 
 // 4 + 8 = 12
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -155,6 +185,7 @@ pub struct Point {
     timestamp: u32,
     value: f64,
 }
+
 
 impl Point {
     pub fn new(timestamp: u32, value: f64) -> Point {
