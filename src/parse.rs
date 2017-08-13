@@ -84,9 +84,6 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
 }
 
 
-///
-///
-///
 named!(pub whisper_parse_header<&[u8], Header>,
        do_parse!(
            metadata: parse_metadata                                                >>
@@ -96,10 +93,6 @@ named!(pub whisper_parse_header<&[u8], Header>,
 );
 
 
-
-///
-///
-///
 named!(pub whisper_parse_file<&[u8], WhisperFile>,
        do_parse!(
            header: whisper_parse_header                      >>
