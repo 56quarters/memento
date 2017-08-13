@@ -1,5 +1,5 @@
 [package]
-name = "whisper-mk2"
+name = "whisper"
 version = "0.1.0"
 authors = ["TSH Labs"]
 

@@ -84,7 +84,10 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
 }
 
 
-named!(pub parse_header<&[u8], Header>,
+///
+///
+///
+named!(pub whisper_parse_header<&[u8], Header>,
        do_parse!(
            metadata: parse_metadata                                                >>
            archives: count!(parse_archive_info, metadata.archive_count() as usize) >>
@@ -94,9 +97,12 @@ named!(pub parse_header<&[u8], Header>,
 
 
 
-named!(pub parse_whisper_file<&[u8], WhisperFile>,
+///
+///
+///
+named!(pub whisper_parse_file<&[u8], WhisperFile>,
        do_parse!(
-           header: parse_header                              >>
+           header: whisper_parse_header                      >>
            data:   apply!(parse_data, header.archive_info()) >>
            (WhisperFile::new(header, data))
        )
@@ -106,15 +112,4 @@ named!(pub parse_whisper_file<&[u8], WhisperFile>,
 #[cfg(test)]
 mod tests {
 
-    use super::{parse_whisper_file, parse_header};
-
-    #[test]
-    fn test_the_things() {
-        let bytes = include_bytes!("../test0.wsp");
-        let header = parse_header(bytes);
-        println!("Header: {:?}", header.to_result().unwrap());
-
-        let all = parse_whisper_file(bytes);
-        println!("All: {:?}", all.to_result().unwrap());
-    }
 }

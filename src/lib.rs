@@ -1,7 +1,5 @@
 // import all the stuff here
 
-#![feature(trace_macros)]
-
 #[macro_use]
 extern crate nom;
 
@@ -10,15 +8,7 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
-mod cache;
-mod file;
-mod parse;
-mod types;
-
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
+pub mod cache;
+pub mod file;
+pub mod parse;
+pub mod types;
