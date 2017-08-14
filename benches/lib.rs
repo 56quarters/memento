@@ -2,7 +2,7 @@
 extern crate test;
 extern crate whisper;
 
-use whisper::parse::{whisper_parse_file, whisper_parse_header};
+use whisper::parser::{whisper_parse_file, whisper_parse_header};
 
 
 #[bench]

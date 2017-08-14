@@ -1,8 +1,7 @@
 extern crate whisper;
 
-use whisper::file::{AggregationType, Archive, ArchiveInfo, WhisperFile,
-                    Header, Metadata, Data};
-use whisper::parse::{whisper_parse_file, whisper_parse_header};
+use whisper::types::{AggregationType};
+use whisper::parser::{whisper_parse_file, whisper_parse_header};
 
 const SECONDS_PER_YEAR: u32 = 3600 * 24 * 365;
 
@@ -42,6 +41,10 @@ fn test_parse_file_mean() {
     let meta = header.metadata();
     let info = header.archive_info();
     let archives = data.archives();
+
+    assert_eq!(AggregationType::Average, meta.aggregation());
+    assert_eq!(SECONDS_PER_YEAR, meta.max_retention());
+    assert_eq!(5, meta.archive_count());
 
     assert_eq!(8640, info[0].num_points());
     assert_eq!(8640, archives[0].points().len());

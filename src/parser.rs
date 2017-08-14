@@ -3,7 +3,7 @@
 
 use nom::{be_u32, be_f32, be_f64, IResult};
 
-use file::{AggregationType, Metadata, ArchiveInfo, Header, Point, Archive,
+use types::{AggregationType, Metadata, ArchiveInfo, Header, Point, Archive,
            Data, WhisperFile};
 
 
