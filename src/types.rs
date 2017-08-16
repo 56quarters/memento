@@ -1,7 +1,7 @@
 // read and write to file on disk
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct WhisperFile {
     header: Header,
     data: Data,
@@ -27,7 +27,7 @@ impl WhisperFile {
 
 
 // 16 + (12 * num)
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct Header {
     metadata: Metadata,
     archive_info: Vec<ArchiveInfo>,
@@ -66,8 +66,15 @@ pub enum AggregationType {
 }
 
 
+impl Default for AggregationType {
+    fn default() -> AggregationType {
+        AggregationType::Average
+    }
+}
+
+
 // 4 + 4 + 4 + 4 = 16
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct Metadata {
     aggregation: AggregationType,
     max_retention: u32,
@@ -110,7 +117,7 @@ impl Metadata {
 
 
 // 4 + 4 + 4 = 12
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct ArchiveInfo {
     offset: u32,
     seconds_per_point: u32,
@@ -149,9 +156,7 @@ pub struct Data {
 
 impl Data {
     pub fn new(archives: Vec<Archive>) -> Data {
-        Data {
-            archives: archives,
-        }
+        Data { archives: archives }
     }
 
     pub fn archives(&self) -> &[Archive] {
@@ -168,9 +173,7 @@ pub struct Archive {
 
 impl Archive {
     pub fn new(points: Vec<Point>) -> Archive {
-        Archive {
-            points: points
-        }
+        Archive { points: points }
     }
 
     pub fn points(&self) -> &[Point] {
@@ -180,7 +183,7 @@ impl Archive {
 
 
 // 4 + 8 = 12
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct Point {
     timestamp: u32,
     value: f64,
@@ -206,7 +209,4 @@ impl Point {
 
 
 #[cfg(test)]
-mod tests {
-
-
-}
+mod tests {}

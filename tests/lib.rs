@@ -1,6 +1,6 @@
 extern crate whisper;
 
-use whisper::types::{AggregationType};
+use whisper::types::AggregationType;
 use whisper::parser::{whisper_parse_file, whisper_parse_header};
 
 const SECONDS_PER_YEAR: u32 = 3600 * 24 * 365;

@@ -3,8 +3,7 @@
 
 use nom::{be_u32, be_f32, be_f64, IResult};
 
-use types::{AggregationType, Metadata, ArchiveInfo, Header, Point, Archive,
-           Data, WhisperFile};
+use types::{AggregationType, Metadata, ArchiveInfo, Header, Point, Archive, Data, WhisperFile};
 
 
 named!(parse_aggregation_type<&[u8], AggregationType>,
@@ -61,9 +60,7 @@ named!(parse_point<&[u8], Point>,
 
 
 fn parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
-    let (remaining, points) = try_parse!(input, count!(
-        parse_point, info.num_points() as usize
-    ));
+    let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
 
     IResult::Done(remaining, Archive::new(points))
 }
@@ -103,6 +100,4 @@ named!(pub whisper_parse_file<&[u8], WhisperFile>,
 
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}
