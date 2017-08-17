@@ -227,6 +227,20 @@ mod tests {
     use super::{ArchiveInfo, AggregationType, Metadata, Header, WhisperFile, Data};
 
     #[test]
+    fn test_header_size() {
+        let metadata = Metadata::new(AggregationType::Average, 31536000, 0.5, 5);
+        let info1 = ArchiveInfo::new(76, 10, 8640);
+        let info2 = ArchiveInfo::new(103756, 60, 10080);
+        let info3 = ArchiveInfo::new(224716, 300, 8640);
+        let info4 = ArchiveInfo::new(328396, 600, 25920);
+        let info5 = ArchiveInfo::new(639436, 3600, 8760);
+
+        let header = Header::new(metadata, vec![info1, info2, info3, info4, info5]);
+
+        assert_eq!(76, header.size());
+    }
+
+    #[test]
     fn test_whisper_file_size() {
         let metadata = Metadata::new(AggregationType::Average, 31536000, 0.5, 5);
         let info1 = ArchiveInfo::new(76, 10, 8640);
