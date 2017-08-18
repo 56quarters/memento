@@ -25,9 +25,9 @@ fn test_parse_header_mean() {
     assert_eq!(3600, info[4].seconds_per_point());
 
     assert_eq!(8640, info[0].num_points());
-    assert_eq!(10080, info[1].num_points());
+    assert_eq!(10_080, info[1].num_points());
     assert_eq!(8640, info[2].num_points());
-    assert_eq!(25920, info[3].num_points());
+    assert_eq!(25_920, info[3].num_points());
     assert_eq!(8760, info[4].num_points());
 }
 
@@ -50,14 +50,14 @@ fn test_parse_file_mean() {
     assert_eq!(8640, info[0].num_points());
     assert_eq!(8640, archives[0].points().len());
 
-    assert_eq!(10080, info[1].num_points());
-    assert_eq!(10080, archives[1].points().len());
+    assert_eq!(10_080, info[1].num_points());
+    assert_eq!(10_080, archives[1].points().len());
 
     assert_eq!(8640, info[2].num_points());
     assert_eq!(8640, archives[2].points().len());
 
-    assert_eq!(25920, info[3].num_points());
-    assert_eq!(25920, archives[3].points().len());
+    assert_eq!(25_920, info[3].num_points());
+    assert_eq!(25_920, archives[3].points().len());
 
     assert_eq!(8760, info[4].num_points());
     assert_eq!(8760, archives[4].points().len());
@@ -66,7 +66,7 @@ fn test_parse_file_mean() {
 #[test]
 fn test_read_parse_write_header() {
     // The header of this whisper file is only the first 76 bytes
-    let header_bytes = &include_bytes!("../tests/mean_01.wsp")[0..76];
+    let header_bytes = &include_bytes!("mean_01.wsp")[0..76];
     let header = whisper_parse_header(header_bytes).unwrap().1;
 
     let mut buf = vec![];
@@ -77,7 +77,7 @@ fn test_read_parse_write_header() {
 
 #[test]
 fn test_read_parse_write_file() {
-    let file_bytes = &include_bytes!("../tests/mean_01.wsp")[..];
+    let file_bytes = &include_bytes!("mean_01.wsp")[..];
     let file = whisper_parse_file(file_bytes).unwrap().1;
 
     let mut buf = vec![];

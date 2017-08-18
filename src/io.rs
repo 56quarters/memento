@@ -1,7 +1,7 @@
 // write to files?
 
-use std::io::{self, Write, BufWriter};
-use byteorder::{ByteOrder, ReadBytesExt, WriteBytesExt, BigEndian, LittleEndian, NetworkEndian};
+use std::io;
+use byteorder::{WriteBytesExt, NetworkEndian};
 use types::{WhisperFile, Header, Metadata, ArchiveInfo, Archive, Point, Data};
 
 
@@ -13,6 +13,7 @@ fn write_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
     writer.write_f32::<NetworkEndian>(meta.x_files_factor())?;
     writer.write_u32::<NetworkEndian>(meta.archive_count())
 }
+
 
 fn write_archive_info<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()>
     where W: WriteBytesExt
@@ -26,12 +27,14 @@ fn write_archive_info<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()
     Ok(())
 }
 
+
 fn write_point<W>(writer: &mut W, point: &Point) -> io::Result<()>
     where W: WriteBytesExt
 {
     writer.write_u32::<NetworkEndian>(point.timestamp())?;
     writer.write_f64::<NetworkEndian>(point.value())
 }
+
 
 fn write_archive<W>(writer: &mut W, archive: &Archive) -> io::Result<()>
     where W: WriteBytesExt
@@ -42,6 +45,7 @@ fn write_archive<W>(writer: &mut W, archive: &Archive) -> io::Result<()>
 
     Ok(())
 }
+
 
 fn write_data<W>(writer: &mut W, data: &Data) -> io::Result<()>
     where W: WriteBytesExt
@@ -68,6 +72,7 @@ pub fn whisper_write_file<W>(writer: &mut W, file: &WhisperFile) -> io::Result<(
     whisper_write_header(writer, file.header())?;
     write_data(writer, file.data())
 }
+
 
 #[cfg(test)]
 mod tests {
