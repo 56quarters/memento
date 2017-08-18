@@ -50,6 +50,12 @@ named!(parse_archive_info<&[u8], ArchiveInfo>,
 );
 
 
+fn parse_archive_infos<'a, 'b>(input: &'a [u8], metadata: &'b Metadata) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
+    let (remaining, infos) = try_parse!(input, count!(parse_archive_info, metadata.archive_count() as usize));
+    IResult::Done(remaining, infos)
+}
+
+
 named!(parse_point<&[u8], Point>,
        do_parse!(
            timestamp: be_u32 >>
@@ -61,7 +67,6 @@ named!(parse_point<&[u8], Point>,
 
 fn parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
     let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
-
     IResult::Done(remaining, Archive::new(points))
 }
 
@@ -83,8 +88,8 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
 
 named!(pub whisper_parse_header<&[u8], Header>,
        do_parse!(
-           metadata: parse_metadata                                                >>
-           archives: count!(parse_archive_info, metadata.archive_count() as usize) >>
+           metadata: parse_metadata                         >>
+           archives: apply!(parse_archive_infos, &metadata) >>
            (Header::new(metadata, archives))
        )
 );
