@@ -102,42 +102,26 @@ named!(pub whisper_parse_file<&[u8], WhisperFile>,
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_parse_aggregation_type() {
-
-    }
+    fn test_parse_aggregation_type() {}
 
     #[test]
-    fn test_parse_metadata() {
-
-    }
+    fn test_parse_metadata() {}
 
     #[test]
-    fn test_parse_archive_info() {
-
-    }
+    fn test_parse_archive_info() {}
 
     #[test]
-    fn test_parse_point() {
-
-    }
+    fn test_parse_point() {}
 
     #[test]
-    fn test_parse_archive() {
-
-    }
+    fn test_parse_archive() {}
 
     #[test]
-    fn test_parse_data() {
-
-    }
+    fn test_parse_data() {}
 
     #[test]
-    fn test_whisper_parse_header() {
-
-    }
+    fn test_whisper_parse_header() {}
 
     #[test]
-    fn test_whisper_parse_file() {
-
-    }
+    fn test_whisper_parse_file() {}
 }

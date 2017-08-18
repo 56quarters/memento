@@ -26,10 +26,13 @@ impl WhisperFile {
 
     /// Get the amount of space required for the entire file in bytes
     pub fn size(&self) -> usize {
-        self.header.archive_info().iter().fold(self.header.size(), |acc, archive| {
-            // 4 byte timestamp and 8 byte value for each point
-            acc + (12 * archive.num_points() as usize)
-        })
+        self.header.archive_info().iter().fold(
+            self.header.size(),
+            |acc, archive| {
+                // 4 byte timestamp and 8 byte value for each point
+                acc + (12 * archive.num_points() as usize)
+            },
+        )
     }
 }
 
