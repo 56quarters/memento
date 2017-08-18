@@ -2,12 +2,9 @@
 
 #[macro_use]
 extern crate nom;
-
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
+extern crate byteorder;
 
 pub mod cache;
 pub mod parser;
 pub mod types;
+pub mod io;

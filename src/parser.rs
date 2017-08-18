@@ -100,4 +100,44 @@ named!(pub whisper_parse_file<&[u8], WhisperFile>,
 
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    #[test]
+    fn test_parse_aggregation_type() {
+
+    }
+
+    #[test]
+    fn test_parse_metadata() {
+
+    }
+
+    #[test]
+    fn test_parse_archive_info() {
+
+    }
+
+    #[test]
+    fn test_parse_point() {
+
+    }
+
+    #[test]
+    fn test_parse_archive() {
+
+    }
+
+    #[test]
+    fn test_parse_data() {
+
+    }
+
+    #[test]
+    fn test_whisper_parse_header() {
+
+    }
+
+    #[test]
+    fn test_whisper_parse_file() {
+
+    }
+}
