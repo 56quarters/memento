@@ -50,8 +50,14 @@ named!(parse_archive_info<&[u8], ArchiveInfo>,
 );
 
 
-fn parse_archive_infos<'a, 'b>(input: &'a [u8], metadata: &'b Metadata) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
-    let (remaining, infos) = try_parse!(input, count!(parse_archive_info, metadata.archive_count() as usize));
+fn parse_archive_infos<'a, 'b>(
+    input: &'a [u8],
+    metadata: &'b Metadata,
+) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
+    let (remaining, infos) = try_parse!(
+        input,
+        count!(parse_archive_info, metadata.archive_count() as usize)
+    );
     IResult::Done(remaining, infos)
 }
 
@@ -114,6 +120,9 @@ mod tests {
 
     #[test]
     fn test_parse_archive_info() {}
+
+    #[test]
+    fn test_parse_archive_infos() {}
 
     #[test]
     fn test_parse_point() {}
