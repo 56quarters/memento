@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate nom;
 extern crate byteorder;
+extern crate memmap;
 
 pub mod cache;
 pub mod parser;

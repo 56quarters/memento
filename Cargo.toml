@@ -6,3 +6,4 @@ authors = ["TSH Labs"]
 [dependencies]
 byteorder = "1.1.0"
 nom = "3.2.0"
+memmap = "0.5.2"
