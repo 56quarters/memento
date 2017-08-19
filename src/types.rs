@@ -28,10 +28,7 @@ impl WhisperFile {
     pub fn size(&self) -> usize {
         self.header.archive_info().iter().fold(
             self.header.size(),
-            |acc, archive| {
-                // 4 byte timestamp and 8 byte value for each point
-                acc + (12 * archive.num_points() as usize)
-            },
+            |acc, info| acc + info.archive_size(),
         )
     }
 }
@@ -62,7 +59,7 @@ impl Header {
 
     /// Get the amount of space required for the file header in bytes
     pub fn size(&self) -> usize {
-        16 /* metadata */ + (12 * self.metadata.archive_count() as usize)
+        Metadata::storage() + (ArchiveInfo::storage() * self.metadata.archive_count() as usize)
     }
 }
 
@@ -88,7 +85,6 @@ impl Default for AggregationType {
 }
 
 
-// 4 + 4 + 4 + 4 = 16
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Metadata {
     aggregation: AggregationType,
@@ -111,6 +107,10 @@ impl Metadata {
             x_files_factor: x_files_factor,
             archive_count: archive_count,
         }
+    }
+
+    pub fn storage() -> usize {
+        16 /* bytes required for an instance */
     }
 
     pub fn aggregation(&self) -> AggregationType {
@@ -146,6 +146,14 @@ impl ArchiveInfo {
             seconds_per_point: seconds_per_point,
             num_points: num_points,
         }
+    }
+
+    pub fn storage() -> usize {
+        12 /* bytes required for an instance */
+    }
+
+    pub fn archive_size(&self) -> usize {
+        Point::storage() * self.num_points as usize
     }
 
     pub fn offset(&self) -> u32 {
@@ -196,7 +204,6 @@ impl Archive {
 }
 
 
-// 4 + 8 = 12
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Point {
     timestamp: u32,
@@ -210,6 +217,10 @@ impl Point {
             timestamp: timestamp,
             value: value,
         }
+    }
+
+    pub fn storage() -> usize {
+        12 /* bytes required for an instance */
     }
 
     pub fn timestamp(&self) -> u32 {
