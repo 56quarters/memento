@@ -20,21 +20,6 @@ named!(parse_aggregation_type<&[u8], AggregationType>,
 );
 
 
-named!(parse_metadata<&[u8], Metadata>,
-       do_parse!(
-           aggregation:    parse_aggregation_type >>
-           max_retention:  be_u32                 >>
-           x_files_factor: be_f32                 >>
-           archive_count:  be_u32                 >>
-           (Metadata::new(
-               aggregation,
-               max_retention,
-               x_files_factor,
-               archive_count
-           ))
-       )
-);
-
 
 named!(parse_archive_info<&[u8], ArchiveInfo>,
        do_parse!(
@@ -48,18 +33,6 @@ named!(parse_archive_info<&[u8], ArchiveInfo>,
            ))
        )
 );
-
-
-fn parse_archive_infos<'a, 'b>(
-    input: &'a [u8],
-    metadata: &'b Metadata,
-) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
-    let (remaining, infos) = try_parse!(
-        input,
-        count!(parse_archive_info, metadata.archive_count() as usize)
-    );
-    IResult::Done(remaining, infos)
-}
 
 
 named!(parse_point<&[u8], Point>,
@@ -91,11 +64,39 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
     IResult::Done(to_parse, Data::new(archives))
 }
 
+named!(pub whisper_parse_metadata<&[u8], Metadata>,
+       do_parse!(
+           aggregation:    parse_aggregation_type >>
+           max_retention:  be_u32                 >>
+           x_files_factor: be_f32                 >>
+           archive_count:  be_u32                 >>
+           (Metadata::new(
+               aggregation,
+               max_retention,
+               x_files_factor,
+               archive_count
+           ))
+       )
+);
+
+
+
+pub fn whisper_parse_archive_infos<'a, 'b>(
+    input: &'a [u8],
+    metadata: &'b Metadata,
+) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
+    let (remaining, infos) = try_parse!(
+        input,
+        count!(parse_archive_info, metadata.archive_count() as usize)
+    );
+    IResult::Done(remaining, infos)
+}
+
 
 named!(pub whisper_parse_header<&[u8], Header>,
        do_parse!(
-           metadata: parse_metadata                         >>
-           archives: apply!(parse_archive_infos, &metadata) >>
+           metadata: whisper_parse_metadata                         >>
+           archives: apply!(whisper_parse_archive_infos, &metadata) >>
            (Header::new(metadata, archives))
        )
 );
