@@ -38,3 +38,18 @@ fn bench_whisper_write_file(b: &mut test::Bencher) {
 
     b.iter(|| { whisper_write_file(&mut buf, &file).unwrap(); });
 }
+
+
+use whisper::io::{whisper_read_header_mmap, whisper_read_header_file};
+
+#[bench]
+fn bench_whisper_read_header_mmap(b: &mut test::Bencher) {
+    let path = "tests/mean_01.wsp";
+    b.iter(|| { whisper_read_header_mmap(path).unwrap(); });
+}
+
+#[bench]
+fn bench_whisper_read_header_file(b: &mut test::Bencher) {
+    let path = "tests/mean_01.wsp";
+    b.iter(|| { whisper_read_header_file(path).unwrap(); });
+}
