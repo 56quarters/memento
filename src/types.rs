@@ -1,5 +1,14 @@
-// read and write to file on disk
+// Whisper
+//
+// Copyright 2017 TSH Labs
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
 
+//! Structures that define the Whisper file format on disk
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct WhisperFile {
@@ -28,7 +37,9 @@ impl WhisperFile {
     pub fn size(&self) -> usize {
         self.header.archive_info().iter().fold(
             self.header.size(),
-            |acc, info| acc + info.archive_size(),
+            |acc, info| {
+                acc + info.archive_size()
+            },
         )
     }
 }

@@ -1,8 +1,25 @@
-// write to files?
+// Whisper
+//
+// Copyright 2017 TSH Labs
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
 
-use std::io;
+//! Functions to read and write parts of the Whisper format to disk
+
+use std::io::{self, Read};
+
 use byteorder::{WriteBytesExt, NetworkEndian};
+
+use parser::{whisper_parse_metadata, whisper_parse_archive_infos};
 use types::{WhisperFile, Header, Metadata, ArchiveInfo, Archive, Point, Data};
+use core::WhisperResult;
+
+
+const DEFAULT_HEADER_READ_BUF: usize = 128;
 
 
 fn write_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
@@ -63,73 +80,54 @@ where
 }
 
 
-pub fn whisper_write_header<W>(writer: &mut W, header: &Header) -> io::Result<()>
+pub fn whisper_write_header<W>(writer: &mut W, header: &Header) -> WhisperResult<()>
 where
     W: WriteBytesExt,
 {
     write_metadata(writer, header.metadata())?;
-    write_archive_info(writer, header.archive_info())
+    Ok(write_archive_info(writer, header.archive_info())?)
 }
 
 
-pub fn whisper_write_file<W>(writer: &mut W, file: &WhisperFile) -> io::Result<()>
+pub fn whisper_write_file<W>(writer: &mut W, file: &WhisperFile) -> WhisperResult<()>
 where
     W: WriteBytesExt,
 {
     whisper_write_header(writer, file.header())?;
-    write_data(writer, file.data())
-}
-
-// mmap file
-// give &[u8] to parse functions
-// ???
-// profit?
-
-use memmap::{Mmap, Protection};
-
-use parser::whisper_parse_header;
-
-pub fn whisper_read_header_mmap(path: &str) -> io::Result<Header> {
-    let map = Mmap::open_path(path, Protection::Read)?;
-    let buf = unsafe { map.as_slice() };
-    Ok(whisper_parse_header(buf).unwrap().1)
+    Ok(write_data(writer, file.data())?)
 }
 
 
-use std::fs::File;
-use std::io::{Read, BufReader};
-use parser::{whisper_parse_metadata, whisper_parse_archive_infos};
-
-pub fn whisper_read_header_file(path: &str) -> io::Result<Header> {
-    let mut buf = Vec::with_capacity(128);
-
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-
-    let mut handle = reader.take(16);
-    let read = { handle.read_to_end(&mut buf)? };
-
-    //println!("Read {} bytes", read);
+pub fn whisper_read_header<R>(reader: &mut R) -> WhisperResult<Header>
+where
+    R: Read,
+{
+    let mut buf = Vec::with_capacity(DEFAULT_HEADER_READ_BUF);
+    let mut handle = reader.take(Metadata::storage() as u64);
+    let _r = handle.read_to_end(&mut buf)?;
 
     let reader = handle.into_inner();
+    let metadata = whisper_parse_metadata(&buf).to_full_result()?;
 
+    let mut handle = reader.take(
+        ArchiveInfo::storage() as u64 * metadata.archive_count() as u64,
+    );
 
-
-    //println!("Meta result: {:?}", res);
-    let metadata = {
-        let res = whisper_parse_metadata(&buf);
-        res.unwrap().1
-    };
-    //panic!("Got metadata");
-
-    let mut handle = reader.take(12 * metadata.archive_count() as u64);
-    let read = { handle.read_to_end(&mut buf)? };
-    let archive_infos = whisper_parse_archive_infos(&buf, &metadata).unwrap().1;
+    let _r = handle.read_to_end(&mut buf);
+    let archive_infos = whisper_parse_archive_infos(&buf, &metadata)
+        .to_full_result()?;
 
     Ok(Header::new(metadata, archive_infos))
 }
 
 
-#[cfg(test)]
-mod tests {
+pub fn whisper_read_file<R>(reader: &mut R) -> WhisperResult<WhisperFile>
+where
+    R: Read,
+{
+    unimplemented!();
 }
+
+
+#[cfg(test)]
+mod tests {}

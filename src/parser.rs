@@ -1,5 +1,12 @@
+// Whisper
 //
-
+// Copyright 2017 TSH Labs
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
 
 use nom::{be_u32, be_f32, be_f64, IResult};
 
@@ -18,7 +25,6 @@ named!(parse_aggregation_type<&[u8], AggregationType>,
                8 => value!(AggregationType::AbsMin)
        )
 );
-
 
 
 named!(parse_archive_info<&[u8], ArchiveInfo>,
