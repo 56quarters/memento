@@ -164,30 +164,25 @@ where
 
 use memmap::{Mmap, Protection};
 use std::fs::File;
+use fs2::FileExt;
 
 // TODO: Explain impl: small bufs, vs big buf, vs mmap
 pub fn whisper_read_file_mmap(map: &Mmap) -> WhisperResult<WhisperFile> {
-    // start with path
-    // into file
-    // lock file (shared)
-    // mmap
-    // read / parse
-    // unlock
     let bytes = unsafe { map.as_slice() };
     Ok(whisper_parse_file(bytes).to_full_result()?)
 }
 
 // TODO: Explain impl: small bufs, vs big buf, vs mmap
 pub fn whisper_read_file_mmap2(path: &str) -> WhisperResult<WhisperFile> {
-    // start with path
-    // into file
-    // lock file (shared)
-    // mmap
-    // read / parse
-    // unlock
-    let map = Mmap::open_path(path, Protection::Read).unwrap();
-    let bytes = unsafe { map.as_slice() };
-    Ok(whisper_parse_file(bytes).to_full_result()?)
+    let file = File::open(path)?;
+    file.lock_shared()?;
+
+    let mmap = Mmap::open(&file, Protection::Read)?;
+    let bytes = unsafe { mmap.as_slice() };
+    let res = whisper_parse_file(bytes).to_full_result()?;
+
+    file.unlock()?;
+    Ok(res)
 }
 
 
