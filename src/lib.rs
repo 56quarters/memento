@@ -12,8 +12,8 @@
 extern crate nom;
 extern crate byteorder;
 extern crate memmap;
+extern crate fs2;
 
-pub mod cache;
 pub mod core;
 pub mod parser;
 pub mod types;
