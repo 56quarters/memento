@@ -50,20 +50,23 @@ named!(parse_point<&[u8], Point>,
 );
 
 
-fn parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
+pub fn whisper_parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
     let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
     IResult::Done(remaining, Archive::new(points))
 }
 
 
-fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a [u8], Data> {
+pub fn whisper_parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a [u8], Data> {
     let mut archives = Vec::with_capacity(infos.len());
     let mut to_parse = input;
 
     for info in infos {
-        let (remaining, archive) = try_parse!(to_parse, apply!(parse_archive, info));
-        to_parse = remaining;
+        let (remaining, archive) = try_parse!(
+            to_parse,
+            apply!(whisper_parse_archive, info)
+        );
 
+        to_parse = remaining;
         archives.push(archive);
     }
 
@@ -111,7 +114,7 @@ named!(pub whisper_parse_header<&[u8], Header>,
 named!(pub whisper_parse_file<&[u8], WhisperFile>,
        do_parse!(
            header: whisper_parse_header                      >>
-           data:   apply!(parse_data, header.archive_info()) >>
+           data:   apply!(whisper_parse_data, header.archive_info()) >>
            (WhisperFile::new(header, data))
        )
 );

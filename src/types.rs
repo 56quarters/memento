@@ -72,6 +72,16 @@ impl Header {
     pub fn size(&self) -> usize {
         Metadata::storage() + (ArchiveInfo::storage() * self.metadata.archive_count() as usize)
     }
+
+    /// Get the amount of space required for the entire file in bytes
+    pub fn file_size(&self) -> usize {
+        self.archive_info().iter().fold(
+            self.size(),
+            |acc, info| {
+                acc + info.archive_size()
+            },
+        )
+    }
 }
 
 
