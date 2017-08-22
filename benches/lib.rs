@@ -4,7 +4,7 @@ extern crate memmap;
 extern crate whisper;
 
 use whisper::io::{whisper_write_file, whisper_write_header, whisper_read_header,
-                  whisper_read_file, whisper_read_file2};
+                  whisper_read_file};
 use whisper::parser::{whisper_parse_file, whisper_parse_header};
 
 
@@ -60,14 +60,5 @@ fn bench_whisper_read_file(b: &mut test::Bencher) {
     let path = "tests/count_01.wsp";
     b.iter(|| {
         whisper_read_file(path).unwrap();
-    });
-}
-
-
-#[bench]
-fn bench_whisper_read_file2(b: &mut test::Bencher) {
-    let path = "tests/count_01.wsp";
-    b.iter(|| {
-        whisper_read_file2(path).unwrap();
     });
 }
