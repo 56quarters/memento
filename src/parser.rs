@@ -50,22 +50,18 @@ named!(parse_point<&[u8], Point>,
 );
 
 
-pub fn whisper_parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
+fn parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
     let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
     IResult::Done(remaining, Archive::new(points))
 }
 
 
-pub fn whisper_parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a [u8], Data> {
+fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a [u8], Data> {
     let mut archives = Vec::with_capacity(infos.len());
     let mut to_parse = input;
 
     for info in infos {
-        let (remaining, archive) = try_parse!(
-            to_parse,
-            apply!(whisper_parse_archive, info)
-        );
-
+        let (remaining, archive) = try_parse!(to_parse, apply!(parse_archive, info));
         to_parse = remaining;
         archives.push(archive);
     }
@@ -73,7 +69,7 @@ pub fn whisper_parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> 
     IResult::Done(to_parse, Data::new(archives))
 }
 
-named!(pub whisper_parse_metadata<&[u8], Metadata>,
+named!(parse_metadata<&[u8], Metadata>,
        do_parse!(
            aggregation:    parse_aggregation_type >>
            max_retention:  be_u32                 >>
@@ -90,7 +86,7 @@ named!(pub whisper_parse_metadata<&[u8], Metadata>,
 
 
 
-pub fn whisper_parse_archive_infos<'a, 'b>(
+fn parse_archive_infos<'a, 'b>(
     input: &'a [u8],
     metadata: &'b Metadata,
 ) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
@@ -104,8 +100,8 @@ pub fn whisper_parse_archive_infos<'a, 'b>(
 
 named!(pub whisper_parse_header<&[u8], Header>,
        do_parse!(
-           metadata: whisper_parse_metadata                         >>
-           archives: apply!(whisper_parse_archive_infos, &metadata) >>
+           metadata: parse_metadata                         >>
+           archives: apply!(parse_archive_infos, &metadata) >>
            (Header::new(metadata, archives))
        )
 );
@@ -114,7 +110,7 @@ named!(pub whisper_parse_header<&[u8], Header>,
 named!(pub whisper_parse_file<&[u8], WhisperFile>,
        do_parse!(
            header: whisper_parse_header                      >>
-           data:   apply!(whisper_parse_data, header.archive_info()) >>
+           data:   apply!(parse_data, header.archive_info()) >>
            (WhisperFile::new(header, data))
        )
 );
