@@ -104,6 +104,7 @@ pub fn whisper_read_header(path: &str) -> WhisperResult<Header> {
     file.lock_shared()?;
 
     let mmap = Mmap::open(&file, Protection::Read)?;
+    // Unsafe is OK here since we've obtained a shared (read) lock
     let bytes = unsafe { mmap.as_slice() };
     let res = whisper_parse_header(bytes).to_full_result()?;
 
@@ -125,12 +126,39 @@ pub fn whisper_read_file(path: &str) -> WhisperResult<WhisperFile> {
     // in benchmarks but maybe real world use is different (or maybe non-ssd use
     // is different).
     let mmap = Mmap::open(&file, Protection::Read)?;
+    // Unsafe is OK here since we've obtained a shared (read) lock
     let bytes = unsafe { mmap.as_slice() };
     let res = whisper_parse_file(bytes).to_full_result()?;
 
     file.unlock()?;
     Ok(res)
 }
+
+
+use libc::{madvise, MADV_SEQUENTIAL, c_void};
+
+// TODO: Explain impl: small bufs, vs big buf, vs mmap
+pub fn whisper_read_file2(path: &str) -> WhisperResult<WhisperFile> {
+    // Provide some entry-like API?
+    // let res = wrapper.with_slice(|bytes| {
+    //     do a bunch of stuff
+    // })
+    let file = File::open(path)?;
+    file.lock_shared()?;
+
+    // Potential extension: madvise(sequential). Didn't seem to make difference
+    // in benchmarks but maybe real world use is different (or maybe non-ssd use
+    // is different).
+    let mut mmap = Mmap::open(&file, Protection::Read)?;
+    // Unsafe is OK here since we've obtained a shared (read) lock
+    unsafe { madvise(mmap.mut_ptr() as *mut c_void, mmap.len(), MADV_SEQUENTIAL) };
+    let bytes = unsafe { mmap.as_slice() };
+    let res = whisper_parse_file(bytes).to_full_result()?;
+
+    file.unlock()?;
+    Ok(res)
+}
+
 
 
 #[cfg(test)]
