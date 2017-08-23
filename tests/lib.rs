@@ -1,7 +1,7 @@
 extern crate whisper;
 
 use whisper::types::AggregationType;
-use whisper::io::{whisper_write_header, whisper_write_file};
+use whisper::encoder::{whisper_encode_header, whisper_encode_file};
 use whisper::parser::{whisper_parse_file, whisper_parse_header};
 
 const SECONDS_PER_YEAR: u32 = 3600 * 24 * 365;
@@ -64,24 +64,24 @@ fn test_parse_file_mean() {
 }
 
 #[test]
-fn test_read_parse_write_header() {
+fn test_read_parse_encode_header() {
     // The header of this whisper file is only the first 76 bytes
     let header_bytes = &include_bytes!("mean_01.wsp")[0..76];
     let header = whisper_parse_header(header_bytes).unwrap().1;
 
     let mut buf = vec![];
-    whisper_write_header(&mut buf, &header).unwrap();
+    whisper_encode_header(&mut buf, &header).unwrap();
 
     assert_eq!(header_bytes, &buf as &[u8]);
 }
 
 #[test]
-fn test_read_parse_write_file() {
+fn test_read_parse_encode_file() {
     let file_bytes = &include_bytes!("mean_01.wsp")[..];
     let file = whisper_parse_file(file_bytes).unwrap().1;
 
     let mut buf = vec![];
-    whisper_write_file(&mut buf, &file).unwrap();
+    whisper_encode_file(&mut buf, &file).unwrap();
 
     assert_eq!(file_bytes, &buf as &[u8]);
 }

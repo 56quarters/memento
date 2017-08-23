@@ -8,6 +8,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Functions to parse Whisper files from a stream of bytes
+
 use nom::{be_u32, be_f32, be_f64, IResult};
 
 use types::{AggregationType, Metadata, ArchiveInfo, Header, Point, Archive, Data, WhisperFile};

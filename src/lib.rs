@@ -15,6 +15,7 @@ extern crate memmap;
 extern crate fs2;
 
 pub mod core;
+pub mod encoder;
 pub mod parser;
 pub mod types;
 pub mod io;
