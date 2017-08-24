@@ -11,6 +11,7 @@
 //! Functions to read and write parts of the Whisper format to disk
 
 use std::fs::File;
+use std::path::Path;
 
 use fs2::FileExt;
 use memmap::{Mmap, Protection};
@@ -21,7 +22,10 @@ use core::WhisperResult;
 
 
 // TODO: Explain impl: mmap vs regular I/O (how locks factor in)
-pub fn whisper_read_header(path: &str) -> WhisperResult<Header> {
+pub fn whisper_read_header<P>(path: P) -> WhisperResult<Header>
+where
+    P: AsRef<Path>,
+{
     let file = File::open(path)?;
     file.lock_shared()?;
 
@@ -36,7 +40,10 @@ pub fn whisper_read_header(path: &str) -> WhisperResult<Header> {
 
 
 // TODO: Explain impl: small bufs, vs big buf, vs mmap
-pub fn whisper_read_file(path: &str) -> WhisperResult<WhisperFile> {
+pub fn whisper_read_file<P>(path: P) -> WhisperResult<WhisperFile>
+where
+    P: AsRef<Path>,
+{
     // Provide some entry-like API?
     // let res = wrapper.with_slice(|bytes| {
     //     do a bunch of stuff
