@@ -204,8 +204,8 @@ impl Data {
     pub fn new(archives: Vec<Archive>) -> Data {
         Data { archives: archives }
     }
-    #[inline]
 
+    #[inline]
     pub fn archives(&self) -> &[Archive] {
         &self.archives
     }
