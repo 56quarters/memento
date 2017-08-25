@@ -25,22 +25,14 @@ impl WhisperFile {
         }
     }
 
+    #[inline]
     pub fn header(&self) -> &Header {
         &self.header
     }
 
+    #[inline]
     pub fn data(&self) -> &Data {
         &self.data
-    }
-
-    /// Get the amount of space required for the entire file in bytes
-    pub fn size(&self) -> usize {
-        self.header.archive_info().iter().fold(
-            self.header.size(),
-            |acc, info| {
-                acc + info.archive_size()
-            },
-        )
     }
 }
 
@@ -60,20 +52,24 @@ impl Header {
         }
     }
 
+    #[inline]
     pub fn metadata(&self) -> &Metadata {
         &self.metadata
     }
 
+    #[inline]
     pub fn archive_info(&self) -> &[ArchiveInfo] {
         &self.archive_info
     }
 
     /// Get the amount of space required for the file header in bytes
+    #[inline]
     pub fn size(&self) -> usize {
         Metadata::storage() + (ArchiveInfo::storage() * self.metadata.archive_count() as usize)
     }
 
     /// Get the amount of space required for the entire file in bytes
+    #[inline]
     pub fn file_size(&self) -> usize {
         self.archive_info().iter().fold(self.size(), |acc, info| {
             acc + info.archive_size()
@@ -127,22 +123,27 @@ impl Metadata {
         }
     }
 
+    #[inline]
     pub fn storage() -> usize {
         16 /* bytes required for an instance */
     }
 
+    #[inline]
     pub fn aggregation(&self) -> AggregationType {
         self.aggregation
     }
 
+    #[inline]
     pub fn max_retention(&self) -> u32 {
         self.max_retention
     }
 
+    #[inline]
     pub fn x_files_factor(&self) -> f32 {
         self.x_files_factor
     }
 
+    #[inline]
     pub fn archive_count(&self) -> u32 {
         self.archive_count
     }
@@ -166,22 +167,27 @@ impl ArchiveInfo {
         }
     }
 
+    #[inline]
     pub fn storage() -> usize {
         12 /* bytes required for an instance */
     }
 
+    #[inline]
     pub fn archive_size(&self) -> usize {
         Point::storage() * self.num_points as usize
     }
 
+    #[inline]
     pub fn offset(&self) -> u32 {
         self.offset
     }
 
+    #[inline]
     pub fn seconds_per_point(&self) -> u32 {
         self.seconds_per_point
     }
 
+    #[inline]
     pub fn num_points(&self) -> u32 {
         self.num_points
     }
@@ -198,6 +204,7 @@ impl Data {
     pub fn new(archives: Vec<Archive>) -> Data {
         Data { archives: archives }
     }
+    #[inline]
 
     pub fn archives(&self) -> &[Archive] {
         &self.archives
@@ -216,6 +223,7 @@ impl Archive {
         Archive { points: points }
     }
 
+    #[inline]
     pub fn points(&self) -> &[Point] {
         &self.points
     }
@@ -237,14 +245,17 @@ impl Point {
         }
     }
 
+    #[inline]
     pub fn storage() -> usize {
         12 /* bytes required for an instance */
     }
 
+    #[inline]
     pub fn timestamp(&self) -> u32 {
         self.timestamp
     }
 
+    #[inline]
     pub fn value(&self) -> f64 {
         self.value
     }
@@ -253,7 +264,7 @@ impl Point {
 
 #[cfg(test)]
 mod tests {
-    use super::{ArchiveInfo, AggregationType, Metadata, Header, WhisperFile, Data};
+    use super::{ArchiveInfo, AggregationType, Metadata, Header};
 
     #[test]
     fn test_header_size() {
@@ -267,21 +278,6 @@ mod tests {
         let header = Header::new(metadata, vec![info1, info2, info3, info4, info5]);
 
         assert_eq!(76, header.size());
-    }
-
-    #[test]
-    fn test_whisper_file_size() {
-        let metadata = Metadata::new(AggregationType::Average, 31536000, 0.5, 5);
-        let info1 = ArchiveInfo::new(76, 10, 8640);
-        let info2 = ArchiveInfo::new(103756, 60, 10080);
-        let info3 = ArchiveInfo::new(224716, 300, 8640);
-        let info4 = ArchiveInfo::new(328396, 600, 25920);
-        let info5 = ArchiveInfo::new(639436, 3600, 8760);
-
-        let header = Header::new(metadata, vec![info1, info2, info3, info4, info5]);
-        let data = Data::default();
-        let file = WhisperFile::new(header, data);
-
-        assert_eq!(744556, file.size());
+        assert_eq!(744556, header.file_size());
     }
 }
