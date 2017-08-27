@@ -20,57 +20,104 @@ use parser::{whisper_parse_header, whisper_parse_file};
 use types::{WhisperFile, Header};
 use core::WhisperResult;
 
-
-fn run_with_immutable_stream<P, F, T>(path: P, consumer: F) -> WhisperResult<T>
-where
-    P: AsRef<Path>,
-    F: Fn(&[u8]) -> WhisperResult<T>,
-{
-    let file = File::open(path)?;
-    file.lock_shared()?;
-
-    // Potential extension: madvise(sequential). Didn't seem to make difference
-    // in benchmarks but maybe real world use is different
-    let mmap = Mmap::open(&file, Protection::Read)?;
-    let res = {
-        // Unsafe is OK here since we've obtained a shared (read) lock
-        let bytes = unsafe { mmap.as_slice() };
-        consumer(bytes)?
-    };
-
-    file.unlock()?;
-    Ok(res)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FlushBehavior {
+    NoFlush,
+    Flush,
+    FlushAsync,
 }
 
 
-fn run_with_mutable_stream<P, F, T>(path: P, consumer: F) -> WhisperResult<T>
-where
-    P: AsRef<Path>,
-    F: Fn(&mut [u8]) -> WhisperResult<T>,
-{
-    let file = File::open(path)?;
-    file.lock_exclusive()?;
-
-    let mut mmap = Mmap::open(&file, Protection::ReadWrite)?;
-    let res = {
-        // Unsafe is OK here since we've obtained an exclusive (write) lock
-        let bytes = unsafe { mmap.as_mut_slice() };
-        consumer(bytes)?
-    };
-
-    // should this be flush_async()?
-    mmap.flush()?;
-    file.unlock()?;
-    Ok(res)
+#[derive(Debug)]
+pub struct StreamAccess {
+    locking: bool,
+    flushing: FlushBehavior,
 }
 
+
+impl Default for StreamAccess {
+    fn default() -> StreamAccess {
+        StreamAccess { locking: true, flushing: FlushBehavior::Flush }
+    }
+}
+
+
+impl StreamAccess {
+    pub fn new() -> StreamAccess {
+        Self::default()
+    }
+
+    pub fn locking(&mut self, locking: bool) {
+        self.locking = locking;
+    }
+
+    pub fn flushing(&mut self, flushing: FlushBehavior) {
+        self.flushing = flushing;
+    }
+
+    pub fn run_mutable<P, F, T>(&mut self, path: P, consumer: F) -> WhisperResult<T>
+    where
+        P: AsRef<Path>,
+        F: Fn(&mut [u8]) -> WhisperResult<T>,
+    {
+        let file = File::open(path)?;
+        if self.locking {
+            file.lock_exclusive()?;
+        }
+
+        let mut mmap = Mmap::open(&file, Protection::ReadWrite)?;
+        let res = {
+            // Unsafe is OK here since we've obtained an exclusive (write) lock
+            let bytes = unsafe { mmap.as_mut_slice() };
+            consumer(bytes)?
+        };
+
+        match self.flushing {
+            FlushBehavior::Flush => mmap.flush()?,
+            FlushBehavior::FlushAsync => mmap.flush_async()?,
+            _ => ()
+        };
+
+        if self.locking {
+            file.unlock()?;
+        }
+
+        Ok(res)
+
+    }
+
+    pub fn run_immutable<P, F, T>(&self, path: P, consumer: F) -> WhisperResult<T>
+    where
+        P: AsRef<Path>,
+        F: Fn(&[u8]) -> WhisperResult<T>,
+    {
+        let file = File::open(path)?;
+        if self.locking {
+            file.lock_shared()?;
+        }
+
+        let mmap = Mmap::open(&file, Protection::Read)?;
+        let res = {
+            // Unsafe is OK here since we've obtained a shared (read) lock
+            let bytes = unsafe { mmap.as_slice() };
+            consumer(bytes)?
+        };
+
+        if self.locking {
+            file.unlock()?;
+        }
+
+        Ok(res)
+    }
+}
 
 // TODO: Explain impl: mmap vs regular I/O (how locks factor in)
 pub fn whisper_read_header<P>(path: P) -> WhisperResult<Header>
 where
     P: AsRef<Path>,
 {
-    run_with_immutable_stream(path, |bytes| {
+    let runner = StreamAccess::new();
+    runner.run_immutable (path, |bytes| {
         Ok(whisper_parse_header(bytes).to_full_result()?)
     })
 }
@@ -81,7 +128,8 @@ pub fn whisper_read_file<P>(path: P) -> WhisperResult<WhisperFile>
 where
     P: AsRef<Path>,
 {
-    run_with_immutable_stream(path, |bytes| {
+    let runner = StreamAccess::new();
+    runner.run_immutable(path, |bytes| {
         Ok(whisper_parse_file(bytes).to_full_result()?)
     })
 }
