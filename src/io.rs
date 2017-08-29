@@ -10,7 +10,7 @@
 
 //! Functions to read and write parts of the Whisper format to disk
 
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::path::Path;
 
 use fs2::FileExt;
@@ -19,6 +19,7 @@ use memmap::{Mmap, Protection};
 use parser::{whisper_parse_header, whisper_parse_file};
 use types::{WhisperFile, Header};
 use core::WhisperResult;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FlushBehavior {
@@ -29,30 +30,32 @@ pub enum FlushBehavior {
 
 
 #[derive(Debug)]
-pub struct StreamAccess {
+pub struct MappedFileStream {
     locking: bool,
     flushing: FlushBehavior,
 }
 
 
-impl Default for StreamAccess {
-    fn default() -> StreamAccess {
-        StreamAccess { locking: true, flushing: FlushBehavior::Flush }
+impl Default for MappedFileStream {
+    fn default() -> Self {
+        MappedFileStream { locking: true, flushing: FlushBehavior::Flush }
     }
 }
 
 
-impl StreamAccess {
-    pub fn new() -> StreamAccess {
+impl MappedFileStream {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn locking(&mut self, locking: bool) {
+    pub fn locking(mut self, locking: bool) -> Self {
         self.locking = locking;
+        self
     }
 
-    pub fn flushing(&mut self, flushing: FlushBehavior) {
+    pub fn flushing(mut self, flushing: FlushBehavior) -> Self {
         self.flushing = flushing;
+        self
     }
 
     pub fn run_mutable<P, F, T>(&mut self, path: P, consumer: F) -> WhisperResult<T>
@@ -60,7 +63,7 @@ impl StreamAccess {
         P: AsRef<Path>,
         F: Fn(&mut [u8]) -> WhisperResult<T>,
     {
-        let file = File::open(path)?;
+        let file = OpenOptions::new().read(true).write(true).open(path)?;
         if self.locking {
             file.lock_exclusive()?;
         }
@@ -116,8 +119,8 @@ pub fn whisper_read_header<P>(path: P) -> WhisperResult<Header>
 where
     P: AsRef<Path>,
 {
-    let runner = StreamAccess::new();
-    runner.run_immutable (path, |bytes| {
+    let runner = MappedFileStream::new();
+    runner.run_immutable(path, |bytes| {
         Ok(whisper_parse_header(bytes).to_full_result()?)
     })
 }
@@ -128,7 +131,7 @@ pub fn whisper_read_file<P>(path: P) -> WhisperResult<WhisperFile>
 where
     P: AsRef<Path>,
 {
-    let runner = StreamAccess::new();
+    let runner = MappedFileStream::new();
     runner.run_immutable(path, |bytes| {
         Ok(whisper_parse_file(bytes).to_full_result()?)
     })
