@@ -58,9 +58,9 @@ impl fmt::Display for WhisperError {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.fmt(f),
             ErrorRepr::ParseError(ref err) => {
-                match err {
-                    &nom::IError::Error(ref e) => e.fmt(f),
-                    &nom::IError::Incomplete(need) => write!(f, "incomplete: {:?}", need),
+                match *err {
+                    nom::IError::Error(ref e) => e.fmt(f),
+                    nom::IError::Incomplete(need) => write!(f, "incomplete: {:?}", need),
                 }
             }
             ErrorRepr::WithDescription(_, desc) => desc.fmt(f),
@@ -74,9 +74,9 @@ impl error::Error for WhisperError {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.description(),
             ErrorRepr::ParseError(ref err) => {
-                match err {
-                    &nom::IError::Error(ref e) => e.description(),
-                    &nom::IError::Incomplete(_) => "incomplete",
+                match *err {
+                    nom::IError::Error(ref e) => e.description(),
+                    nom::IError::Incomplete(_) => "incomplete",
                 }
             }
             ErrorRepr::WithDescription(_, desc) => desc,
@@ -87,8 +87,8 @@ impl error::Error for WhisperError {
         match self.repr {
             ErrorRepr::IoError(ref err) => Some(err),
             ErrorRepr::ParseError(ref err) => {
-                match err {
-                    &nom::IError::Error(ref e) => Some(e),
+                match *err {
+                    nom::IError::Error(ref e) => Some(e),
                     _ => None,
                 }
             }

@@ -1,6 +1,5 @@
 #![feature(test)]
 extern crate test;
-extern crate memmap;
 extern crate whisper;
 
 use whisper::io::{whisper_read_header, whisper_read_file};
