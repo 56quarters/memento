@@ -71,6 +71,7 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
     IResult::Done(to_parse, Data::new(archives))
 }
 
+
 named!(parse_metadata<&[u8], Metadata>,
        do_parse!(
            aggregation:    parse_aggregation_type >>
@@ -85,7 +86,6 @@ named!(parse_metadata<&[u8], Metadata>,
            ))
        )
 );
-
 
 
 fn parse_archive_infos<'a, 'b>(
