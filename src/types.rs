@@ -191,6 +191,11 @@ impl ArchiveInfo {
     pub fn num_points(&self) -> u32 {
         self.num_points
     }
+
+    #[inline]
+    pub fn retention(&self) -> u32 {
+        self.num_points * self.seconds_per_point
+    }
 }
 
 
