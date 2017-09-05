@@ -29,7 +29,7 @@ fn bench_whisper_encode_header(b: &mut test::Bencher) {
 
     b.iter(|| {
         whisper_encode_header(&mut buf, &header).unwrap();
-                buf.clear();
+        buf.clear();
     });
 }
 
