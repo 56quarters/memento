@@ -8,15 +8,16 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[macro_use]
-extern crate nom;
-extern crate byteorder;
-extern crate memmap;
-extern crate fs2;
+//! Utility methods that don't fit anywhere else
 
-pub mod core;
-pub mod encoder;
-pub mod parser;
-pub mod types;
-pub mod io;
-pub mod util;
+use std::time::{SystemTime, Duration, UNIX_EPOCH};
+
+
+pub fn get_duration_since_epoch() -> Option<Duration> {
+    SystemTime::now().duration_since(UNIX_EPOCH).ok()
+}
+
+
+pub fn get_seconds_since_epoch() -> Option<u64> {
+    get_duration_since_epoch().map(|d| d.as_secs())
+}
