@@ -106,7 +106,7 @@ impl MappedFileStream {
     {
         let file = OpenOptions::new().read(true).write(true).open(path)?;
         // Not used, we just need it to unlock the file in its destructor
-        let _locker = FileLocker::lock_exclusive(self.locking, &file);
+        let _locker = FileLocker::lock_exclusive(self.locking, &file)?;
 
         let mut mmap = Mmap::open(&file, Protection::ReadWrite)?;
         let res = {
@@ -131,7 +131,7 @@ impl MappedFileStream {
     {
         let file = File::open(path)?;
         // Not used, we just need it to unlock the file in its destructor
-        let _locker = FileLocker::lock_shared(self.locking, &file);
+        let _locker = FileLocker::lock_shared(self.locking, &file)?;
 
         let mmap = Mmap::open(&file, Protection::Read)?;
         let res = {
