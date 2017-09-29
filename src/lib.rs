@@ -19,4 +19,3 @@ pub mod encoder;
 pub mod parser;
 pub mod types;
 pub mod io;
-pub mod util;
