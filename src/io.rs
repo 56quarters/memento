@@ -22,7 +22,6 @@ use types::{WhisperFile, Header, Point};
 use core::{WhisperResult, WhisperError, ErrorKind};
 
 
-
 struct FileLocker<'a> {
     enabled: bool,
     file: &'a File,
@@ -54,9 +53,11 @@ impl<'a> Drop for FileLocker<'a> {
             return;
         }
 
+        // Try to unlock but if it fails there's really nothing to do about
+        // it. Probably don't want to be logging from a library and we can't
+        // panic or return an Err from a destructor.
         match self.file.unlock() {
-            Ok(_) => (),
-            Err(_) => (), // log or something?
+            _ => (),
         };
     }
 }
