@@ -43,18 +43,15 @@ named!(parse_archive_info<&[u8], ArchiveInfo>,
 );
 
 
-named!(parse_point<&[u8], Point>,
-       do_parse!(
-           timestamp: be_u32 >>
-           value:     be_f64 >>
-           (Point::new(timestamp, value))
-       )
-);
-
-
-fn parse_archive<'a, 'b>(input: &'a [u8], info: &'b ArchiveInfo) -> IResult<&'a [u8], Archive> {
-    let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
-    IResult::Done(remaining, Archive::new(points))
+fn parse_archive_infos<'a, 'b>(
+    input: &'a [u8],
+    metadata: &'b Metadata,
+) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
+    let (remaining, infos) = try_parse!(
+        input,
+        count!(parse_archive_info, metadata.archive_count() as usize)
+    );
+    IResult::Done(remaining, infos)
 }
 
 
@@ -63,7 +60,7 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
     let mut to_parse = input;
 
     for info in infos {
-        let (remaining, archive) = try_parse!(to_parse, apply!(parse_archive, info));
+        let (remaining, archive) = try_parse!(to_parse, apply!(whisper_parse_archive, info));
         to_parse = remaining;
         archives.push(archive);
     }
@@ -88,16 +85,13 @@ named!(parse_metadata<&[u8], Metadata>,
 );
 
 
-fn parse_archive_infos<'a, 'b>(
-    input: &'a [u8],
-    metadata: &'b Metadata,
-) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
-    let (remaining, infos) = try_parse!(
-        input,
-        count!(parse_archive_info, metadata.archive_count() as usize)
-    );
-    IResult::Done(remaining, infos)
-}
+named!(parse_point<&[u8], Point>,
+       do_parse!(
+           timestamp: be_u32 >>
+           value:     be_f64 >>
+           (Point::new(timestamp, value))
+       )
+);
 
 
 named!(pub whisper_parse_header<&[u8], Header>,
@@ -107,6 +101,15 @@ named!(pub whisper_parse_header<&[u8], Header>,
            (Header::new(metadata, archives))
        )
 );
+
+
+pub fn whisper_parse_archive<'a, 'b>(
+    input: &'a [u8],
+    info: &'b ArchiveInfo,
+) -> IResult<&'a [u8], Archive> {
+    let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
+    IResult::Done(remaining, Archive::new(points))
+}
 
 
 named!(pub whisper_parse_file<&[u8], WhisperFile>,
