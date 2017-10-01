@@ -93,10 +93,12 @@ fn test_mapped_file_stream_mutable() {
     let expected_ref = &mut expected as &mut [u8];
 
     let mut mapper = MappedFileStream::new();
-    let _ = mapper.run_mutable("tests/zero_file.bin", |bytes| {
-        assert_eq!(expected_ref, bytes);
-        Ok(0)
-    }).unwrap();
+    let _ = mapper
+        .run_mutable("tests/zero_file.bin", |bytes| {
+            assert_eq!(expected_ref, bytes);
+            Ok(0)
+        })
+        .unwrap();
 }
 
 
@@ -106,8 +108,10 @@ fn test_mapped_file_stream_immutable() {
     let expected_ref = &expected as &[u8];
 
     let mapper = MappedFileStream::new();
-    let _ = mapper.run_immutable("tests/zero_file.bin", |bytes| {
-        assert_eq!(expected_ref, bytes);
-        Ok(0)
-    }).unwrap();
+    let _ = mapper
+        .run_immutable("tests/zero_file.bin", |bytes| {
+            assert_eq!(expected_ref, bytes);
+            Ok(0)
+        })
+        .unwrap();
 }

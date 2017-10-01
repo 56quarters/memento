@@ -34,7 +34,10 @@ impl<'a> FileLocker<'a> {
             file.lock_shared()?;
         }
 
-        Ok(FileLocker { enabled: enabled, file: file })
+        Ok(FileLocker {
+            enabled: enabled,
+            file: file,
+        })
     }
 
     fn lock_exclusive(enabled: bool, file: &'a File) -> io::Result<FileLocker<'a>> {
@@ -42,7 +45,10 @@ impl<'a> FileLocker<'a> {
             file.lock_exclusive()?;
         }
 
-        Ok(FileLocker { enabled: enabled, file: file })
+        Ok(FileLocker {
+            enabled: enabled,
+            file: file,
+        })
     }
 }
 
@@ -80,7 +86,10 @@ pub struct MappedFileStream {
 
 impl Default for MappedFileStream {
     fn default() -> Self {
-        MappedFileStream { locking: true, flushing: FlushBehavior::Flush }
+        MappedFileStream {
+            locking: true,
+            flushing: FlushBehavior::Flush,
+        }
     }
 }
 
@@ -119,7 +128,7 @@ impl MappedFileStream {
         match self.flushing {
             FlushBehavior::Flush => mmap.flush()?,
             FlushBehavior::FlushAsync => mmap.flush_async()?,
-            _ => ()
+            _ => (),
         };
 
         Ok(res)
@@ -194,16 +203,20 @@ struct FetchRequest {
 impl FetchRequest {
     fn from(mut from: u64, until: u64, now: u64, header: &Header) -> WhisperResult<FetchRequest> {
         let metadata = header.metadata();
-        let oldest = now - metadata.max_retention() as u64;
+        let oldest = now - u64::from(metadata.max_retention());
 
         // start time is in the future, invalid
         if from > now {
-            return Err(WhisperError::from((ErrorKind::InvalidInput, "invalid time range")))
+            return Err(WhisperError::from(
+                (ErrorKind::InvalidInput, "invalid time range"),
+            ));
         }
 
         // end time is before the oldest value we have, invalid
         if until < oldest {
-            return Err(WhisperError::from((ErrorKind::InvalidInput, "invalid time range")))
+            return Err(WhisperError::from(
+                (ErrorKind::InvalidInput, "invalid time range"),
+            ));
         }
 
         // start time is before the oldest value we have, adjust
@@ -224,27 +237,34 @@ impl FetchRequest {
 }
 
 
-fn get_archive_to_use<'a, 'b>(request: &'a FetchRequest, header: &'b Header) -> WhisperResult<&'b ArchiveInfo> {
+fn get_archive_to_use<'a, 'b>(
+    request: &'a FetchRequest,
+    header: &'b Header,
+) -> WhisperResult<&'b ArchiveInfo> {
     let archives = header.archive_info();
     let required_retention = request.retention();
 
     for archive in archives {
-        if archive.retention() as u64 >= required_retention {
-            return Ok(archive)
+        if u64::from(archive.retention()) >= required_retention {
+            return Ok(archive);
         }
     }
 
-    Err(WhisperError::from((ErrorKind::InvalidInput, "no archive available")))
+    Err(WhisperError::from(
+        (ErrorKind::InvalidInput, "no archive available"),
+    ))
 }
 
 
 pub fn whisper_fetch_points<P>(path: P, from: u64, until: u64) -> WhisperResult<Vec<Point>>
 where
-    P: AsRef<Path>
+    P: AsRef<Path>,
 {
     // Well, this is just nonsense
     if until <= from {
-        return Err(WhisperError::from((ErrorKind::InvalidInput, "invalid time range")))
+        return Err(WhisperError::from(
+            (ErrorKind::InvalidInput, "invalid time range"),
+        ));
     }
 
     let runner = MappedFileStream::new();
@@ -253,7 +273,7 @@ where
         let now = get_seconds_since_epoch().unwrap();
         let request = FetchRequest::from(from, until, now, &header)?;
         let archive = get_archive_to_use(&request, &header)?;
-
+        // archive_data = whisper_parse_archive(bytes[archive.offset()..])
         Ok(vec![])
     })
     // validate some things
