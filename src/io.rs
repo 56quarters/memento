@@ -17,7 +17,7 @@ use std::path::Path;
 use fs2::FileExt;
 use memmap::{Mmap, Protection};
 
-use parser::{whisper_parse_header, whisper_parse_file};
+use parser::{whisper_parse_header, whisper_parse_file, whisper_parse_archive};
 use types::{WhisperFile, Header, Point};
 use core::{WhisperResult, WhisperError, ErrorKind};
 
@@ -255,8 +255,46 @@ fn get_archive_to_use<'a, 'b>(
     ))
 }
 
+fn get_slice_for_archive<'a, 'b>(
+    bytes: &'a [u8],
+    archive: &'b ArchiveInfo,
+) -> WhisperResult<&'a [u8]> {
+    let offset = archive.offset() as usize;
+
+    // These two conditions should never happen but it's nice to handle
+    // a corrupted file gracefully here instead of just panicking. This
+    // avoids crashing the calling code.
+    if offset > bytes.len() {
+        return Err(WhisperError::from(
+            (ErrorKind::ParseError, "offset exceeds data size"),
+        ));
+    }
+
+    if offset + archive.archive_size() > bytes.len() {
+        return Err(WhisperError::from(
+            (ErrorKind::ParseError, "archive exceeds data size"),
+        ));
+    }
+
+    Ok(&bytes[offset..offset + archive.archive_size()])
+}
+
 
 pub fn whisper_fetch_points<P>(path: P, from: u64, until: u64) -> WhisperResult<Vec<Point>>
+where
+    P: AsRef<Path>,
+{
+    let now = get_seconds_since_epoch().unwrap();
+    whisper_fetch_points_with_now(path, from, until, now)
+}
+
+
+pub fn whisper_fetch_points_with_now<P>(
+    path: P,
+    from: u64,
+    until: u64,
+    now: u64,
+) -> WhisperResult<Vec<Point>>
 where
     P: AsRef<Path>,
 {
@@ -270,18 +308,13 @@ where
     let runner = MappedFileStream::new();
     runner.run_immutable(path, |bytes| {
         let header = whisper_parse_header(bytes).to_full_result()?;
-        let now = get_seconds_since_epoch().unwrap();
         let request = FetchRequest::from(from, until, now, &header)?;
         let archive = get_archive_to_use(&request, &header)?;
-        // archive_data = whisper_parse_archive(bytes[archive.offset()..])
+        let archive_bytes = get_slice_for_archive(bytes, archive)?;
+        let archive_data = whisper_parse_archive(archive_bytes, archive)
+            .to_full_result()?;
         Ok(vec![])
     })
-    // validate some things
-    // map file
-    // read header
-    // find highest resolution archive that can be used
-    // compute offset in file (archive base + timestamp)
-    // parse points? parse entire archive?
 }
 
 
