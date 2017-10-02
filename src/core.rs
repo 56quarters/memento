@@ -30,9 +30,9 @@ enum ErrorRepr {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ErrorKind {
-    IoError,
-    ParseError,
-    InvalidInput,
+    IoError, // Errors reading or writing beyond our control
+    ParseError, // Malformed whisper files
+    InvalidInput, // Invalid input from a user
 }
 
 
