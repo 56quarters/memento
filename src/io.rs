@@ -18,7 +18,7 @@ use fs2::FileExt;
 use memmap::{Mmap, Protection};
 
 use parser::{whisper_parse_header, whisper_parse_file, whisper_parse_archive};
-use types::{WhisperFile, Header, Point};
+use types::{WhisperFile, Header, Point, Archive, ArchiveInfo};
 use core::{WhisperResult, WhisperError, ErrorKind};
 
 
@@ -179,7 +179,6 @@ where
 }
 
 
-use types::ArchiveInfo;
 use std::time::{SystemTime, Duration, UNIX_EPOCH};
 
 
@@ -193,6 +192,9 @@ pub fn get_seconds_since_epoch() -> Option<u64> {
 }
 
 
+// TODO: This should be part of the public API. Maybe? Builder pattern?
+// validation happens in the .build() call or something else internal to
+// the *fetch() function
 struct FetchRequest {
     from: u64,
     until: u64,
@@ -280,6 +282,35 @@ fn get_slice_for_archive<'a, 'b>(
 }
 
 
+fn get_points_for_request(
+    info: &ArchiveInfo,
+    archive: &Archive,
+    request: &FetchRequest
+) -> Vec<Point> {
+    let expected = (request.until - request.from) / u64::from(info.seconds_per_point()) + 1;
+    let mut out = Vec::with_capacity(expected as usize);
+
+    println!("Expected num: {}", expected);
+    for p in archive.points() {
+        let t = u64::from(p.timestamp());
+
+        if t >= request.from {
+            if t <= request.until {
+                out.push(p.clone());
+            } else {
+                // timestamp of the current point is past the end timestamp we're
+                // interested in. all further points will be too so just bail early
+                break;
+            }
+        }
+    }
+
+    println!("Actual num: {}", out.len());
+
+    out
+}
+
+
 pub fn whisper_fetch_points<P>(path: P, from: u64, until: u64) -> WhisperResult<Vec<Point>>
 where
     P: AsRef<Path>,
@@ -309,11 +340,11 @@ where
     runner.run_immutable(path, |bytes| {
         let header = whisper_parse_header(bytes).to_full_result()?;
         let request = FetchRequest::from(from, until, now, &header)?;
-        let archive = get_archive_to_use(&request, &header)?;
-        let archive_bytes = get_slice_for_archive(bytes, archive)?;
-        let archive_data = whisper_parse_archive(archive_bytes, archive)
+        let archive_info = get_archive_to_use(&request, &header)?;
+        let archive_bytes = get_slice_for_archive(bytes, archive_info)?;
+        let archive = whisper_parse_archive(archive_bytes, archive_info)
             .to_full_result()?;
-        Ok(vec![])
+        Ok(get_points_for_request(archive_info, &archive, &request))
     })
 }
 
