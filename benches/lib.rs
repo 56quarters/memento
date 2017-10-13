@@ -2,7 +2,6 @@
 extern crate test;
 extern crate whisper;
 
-use whisper::io::{whisper_read_header, whisper_read_file};
 use whisper::encoder::{whisper_encode_header, whisper_encode_file};
 use whisper::parser::{whisper_parse_header, whisper_parse_file};
 
@@ -44,18 +43,4 @@ fn bench_whisper_encode_file(b: &mut test::Bencher) {
         whisper_encode_file(&mut buf, &file).unwrap();
         buf.clear();
     });
-}
-
-
-#[bench]
-fn bench_whisper_read_header(b: &mut test::Bencher) {
-    let path = "tests/mean_01.wsp";
-    b.iter(|| { whisper_read_header(path).unwrap(); });
-}
-
-
-#[bench]
-fn bench_whisper_read_file(b: &mut test::Bencher) {
-    let path = "tests/count_01.wsp";
-    b.iter(|| { whisper_read_file(path).unwrap(); });
 }
