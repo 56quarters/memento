@@ -11,7 +11,8 @@
 //!
 
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+
+use time::{self, Timespec, Tm, Duration};
 
 use io::MappedFileStream;
 use parser::{whisper_parse_header, whisper_parse_archive};
@@ -19,26 +20,15 @@ use types::{Header, Point, Archive, ArchiveInfo};
 use core::{WhisperResult, WhisperError, ErrorKind};
 
 
-fn get_seconds_since_epoch() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .expect(concat!(
-            "Unable to determine the number of seconds since UNIX Epoch. ",
-            "Please ensure sytem time is set correctly"
-        ))
-}
-
-
 pub struct FetchRequest {
-    from: u64,
-    until: u64,
-    now: u64,
+    from: Timespec,
+    until: Timespec,
+    now: Timespec,
 }
 
 
 impl FetchRequest {
-    pub fn new(from: u64, until: u64, now: u64) -> FetchRequest {
+    pub fn new(from: Timespec, until: Timespec, now: Timespec) -> FetchRequest {
         FetchRequest {
             from: from,
             until: until,
@@ -46,24 +36,36 @@ impl FetchRequest {
         }
     }
 
-    pub fn with_from(&mut self, val: u64) -> &mut Self {
+    pub fn with_from(&mut self, val: Timespec) -> &mut Self {
         self.from = val;
         self
     }
 
-    pub fn with_until(&mut self, val: u64) -> &mut Self {
+    pub fn with_from_tm(&mut self, val: Tm) -> &mut Self {
+        self.with_from(val.to_timespec())
+    }
+
+    pub fn with_until(&mut self, val: Timespec) -> &mut Self {
         self.until = val;
         self
     }
 
-    pub fn with_now(&mut self, val: u64) -> &mut Self {
+    pub fn with_until_tm(&mut self, val: Tm) -> &mut Self {
+        self.with_until(val.to_timespec())
+    }
+
+    pub fn with_now(&mut self, val: Timespec) -> &mut Self {
         self.now = val;
         self
     }
 
+    pub fn with_now_tm(&mut self, val: Tm) -> &mut Self {
+        self.with_now(val.to_timespec())
+    }
+
     fn normalize(&self, header: &Header) -> WhisperResult<Self> {
         let metadata = header.metadata();
-        let oldest = self.now - u64::from(metadata.max_retention());
+        let oldest = self.now - Duration::seconds(metadata.max_retention() as i64);
 
         // Well, this is just nonsense
         if self.until <= self.from {
@@ -96,7 +98,7 @@ impl FetchRequest {
         Ok(FetchRequest::new(from, self.until, self.now))
     }
 
-    fn retention(&self) -> u64 {
+    fn retention(&self) -> Duration {
         self.now - self.from
     }
 }
@@ -105,8 +107,8 @@ impl FetchRequest {
 impl Default for FetchRequest {
     /// Default request is for the previous 24 hours of data
     fn default() -> Self {
-        let now = get_seconds_since_epoch();
-        let from = now - 24 * 60 * 60;
+        let now = time::get_time();
+        let from = now - Duration::days(1);
         let until = now;
 
         FetchRequest::new(from, until, now)
@@ -132,7 +134,8 @@ impl WhisperReader {
         let required_retention = req.retention();
 
         for archive in archives {
-            if u64::from(archive.retention()) >= required_retention {
+            let retention = Duration::seconds(archive.retention() as i64);
+            if retention >= required_retention {
                 return Ok(archive);
             }
         }
@@ -170,8 +173,8 @@ impl WhisperReader {
         archive
             .points()
             .iter()
-            .filter(|p| u64::from(p.timestamp()) >= request.from)
-            .filter(|p| u64::from(p.timestamp()) <= request.until)
+            .filter(|p| u64::from(p.timestamp()) >= request.from.sec as u64)
+            .filter(|p| u64::from(p.timestamp()) <= request.until.sec as u64)
             .map(|p| p.clone())
             .collect()
     }
@@ -189,5 +192,21 @@ impl WhisperReader {
                 .to_full_result()?;
             Ok(Self::get_points_for_request(&archive, &req))
         })
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_get_archive_to_use() {
+    }
+
+    #[test]
+    fn test_get_slice_for_archive() {
+    }
+
+    #[test]
+    fn test_get_points_for_request() {
     }
 }
