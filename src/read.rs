@@ -173,8 +173,8 @@ impl WhisperReader {
         archive
             .points()
             .iter()
-            .filter(|p| u64::from(p.timestamp()) >= request.from.sec as u64)
-            .filter(|p| u64::from(p.timestamp()) <= request.until.sec as u64)
+            .filter(|p| Timespec::new(p.timestamp() as i64, 0) >= request.from)
+            .filter(|p| Timespec::new(p.timestamp() as i64, 0) <= request.until)
             .map(|p| p.clone())
             .collect()
     }
@@ -199,11 +199,35 @@ impl WhisperReader {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn test_get_archive_to_use_no_archives() {
+    }
+
+    #[test]
     fn test_get_archive_to_use() {
     }
 
     #[test]
+    fn test_get_slice_for_archive_invalid_offset() {
+    }
+
+    #[test]
+    fn test_get_slice_for_archive_invalid_archive_size() {
+    }
+
+    #[test]
     fn test_get_slice_for_archive() {
+    }
+
+    #[test]
+    fn test_get_points_for_request_all_points_after_from() {
+    }
+
+    #[test]
+    fn test_get_points_for_request_all_points_before_until() {
+    }
+
+    #[test]
+    fn test_get_points_for_request_mixed_data_in_middle() {
     }
 
     #[test]
