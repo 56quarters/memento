@@ -20,7 +20,8 @@ use core::{WhisperResult, WhisperError, ErrorKind};
 
 
 fn get_seconds_since_epoch() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .expect(concat!(
             "Unable to determine the number of seconds since UNIX Epoch. ",
@@ -37,11 +38,7 @@ pub struct FetchRequest {
 
 
 impl FetchRequest {
-    pub fn new() -> FetchRequest {
-        let now = get_seconds_since_epoch();
-        let from = now - 24 * 60 * 60;
-        let until = now;
-
+    pub fn new(from: u64, until: u64, now: u64) -> FetchRequest {
         FetchRequest {
             from: from,
             until: until,
@@ -64,7 +61,7 @@ impl FetchRequest {
         self
     }
 
-    fn validate(&self, header: &Header) -> WhisperResult<()> {
+    fn normalize(&self, header: &Header) -> WhisperResult<Self> {
         let metadata = header.metadata();
         let oldest = self.now - u64::from(metadata.max_retention());
 
@@ -78,23 +75,25 @@ impl FetchRequest {
         // start time is in the future, invalid
         if self.from > self.now {
             return Err(WhisperError::from(
-                (ErrorKind::InvalidInput, "invalid time range"),
+                (ErrorKind::InvalidInput, "invalid from time"),
             ));
         }
 
         // end time is before the oldest value we have, invalid
         if self.until < oldest {
             return Err(WhisperError::from(
-                (ErrorKind::InvalidInput, "invalid time range"),
+                (ErrorKind::InvalidInput, "invalid until time"),
             ));
         }
 
         // start time is before the oldest value we have, adjust
-        if self.from < oldest {
-            //self.from = oldest;
-        }
+        let from = if self.from < oldest {
+            oldest
+        } else {
+            self.from
+        };
 
-        Ok(())
+        Ok(FetchRequest::new(from, self.until, self.now))
     }
 
     fn retention(&self) -> u64 {
@@ -110,11 +109,7 @@ impl Default for FetchRequest {
         let from = now - 24 * 60 * 60;
         let until = now;
 
-        FetchRequest {
-            from: from,
-            until: until,
-            now: now,
-        }
+        FetchRequest::new(from, until, now)
     }
 }
 
@@ -126,16 +121,13 @@ pub struct WhisperReader {
 
 impl WhisperReader {
     pub fn new(mapper: MappedFileStream) -> WhisperReader {
-        WhisperReader {
-            mapper: mapper
-        }
+        WhisperReader { mapper: mapper }
     }
 
     fn get_archive_to_use<'a, 'b>(
         req: &'a FetchRequest,
-        header: &'b Header
+        header: &'b Header,
     ) -> WhisperResult<&'b ArchiveInfo> {
-
         let archives = header.archive_info();
         let required_retention = req.retention();
 
@@ -152,7 +144,7 @@ impl WhisperReader {
 
     fn get_slice_for_archive<'a, 'b>(
         bytes: &'a [u8],
-        archive: &'b ArchiveInfo
+        archive: &'b ArchiveInfo,
     ) -> WhisperResult<&'a [u8]> {
         let offset = archive.offset() as usize;
 
@@ -175,7 +167,9 @@ impl WhisperReader {
     }
 
     fn get_points_for_request(archive: &Archive, request: &FetchRequest) -> Vec<Point> {
-        archive.points().iter()
+        archive
+            .points()
+            .iter()
             .filter(|p| u64::from(p.timestamp()) >= request.from)
             .filter(|p| u64::from(p.timestamp()) <= request.until)
             .map(|p| p.clone())
@@ -184,12 +178,11 @@ impl WhisperReader {
 
     pub fn read<P>(&self, path: P, req: &FetchRequest) -> WhisperResult<Vec<Point>>
     where
-        P: AsRef<Path>
+        P: AsRef<Path>,
     {
         self.mapper.run_immutable(path, |bytes| {
             let header = whisper_parse_header(bytes).to_full_result()?;
-            req.validate(&header)?;
-
+            let req = req.normalize(&header)?;
             let archive_info = Self::get_archive_to_use(&req, &header)?;
             let archive_bytes = Self::get_slice_for_archive(bytes, archive_info)?;
             let archive = whisper_parse_archive(archive_bytes, archive_info)
