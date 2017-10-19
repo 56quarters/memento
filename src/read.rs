@@ -223,6 +223,8 @@ impl<'a> WhisperReader<'a> {
     ///
     fn slice_for_archive(&self, archive: &ArchiveInfo) -> WhisperResult<&[u8]> {
         let offset = archive.offset() as usize;
+        println!("Offset: {}", offset);
+        println!("ArhiveInfo: {:?}", archive);
         // These two conditions should never happen but it's nice to handle
         // a corrupted file gracefully here instead of just panicking. This
         // avoids crashing the calling code.
@@ -231,6 +233,8 @@ impl<'a> WhisperReader<'a> {
                 (ErrorKind::ParseError, "offset exceeds data size"),
             ));
         }
+
+        println!("Archive size: {}", archive.archive_size());
 
         if offset + archive.archive_size() > self.bytes.len() {
             return Err(WhisperError::from(
@@ -282,8 +286,10 @@ impl<'a> WhisperReader<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::FetchRequest;
-    use types::{Header, Metadata, ArchiveInfo, AggregationType};
+    use super::{FetchRequest, WhisperReader};
+    use encoder::{whisper_encode_header, whisper_encode_archive};
+    use types::{Header, Metadata, ArchiveInfo, AggregationType, Archive, Point};
+    use core::ErrorKind;
     use time;
 
     fn get_file_header() -> Header {
@@ -296,48 +302,114 @@ mod tests {
         let info1 = ArchiveInfo::new(
             (Metadata::storage() + ArchiveInfo::storage() * 2) as u32, // offset
             60, // seconds per point
-            60 * 24 * 7, // number of 1 minute points = 60 per hour * 24 hours * 7 days
+            60 * 24 * 1, // number of 1 minute points = 60 per hour * 24 hours * 1 days
         );
         let info2 = ArchiveInfo::new(
             info1.offset() + info1.archive_size() as u32, // offset
             300, // seconds per point
-            12 * 24 * 30, // number of 5 minute points = 12 per hour * 24 hours * 30 days
+            12 * 24 * 7, // number of 5 minute points = 12 per hour * 24 hours * 7 days
         );
 
         Header::new(metadata, vec![info1, info2])
     }
 
-    // TODO: Should these all be variations of testing the .read() method?
+    fn get_archive(info: &ArchiveInfo, now: time::Tm) -> Archive {
+        let start_secs = now.to_timespec().sec as u32 - info.retention();
+        let mut vals = vec![];
 
-    #[test]
-    fn test_find_archive_no_archives() {
-        let req = FetchRequest::default();
-        let header = get_file_header();
+        for i in 0..info.num_points() {
+            let point_time = start_secs + (i * info.seconds_per_point());
+            vals.push(Point::new(point_time, 7.0));
+        }
 
+        Archive::new(vals)
     }
 
     #[test]
-    fn test_find_archive_success() {}
+    fn test_read_no_archives_for_request() {
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-04T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-07T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        buf.shrink_to_fit();
+
+        let reader = WhisperReader::new(&buf);
+        let res = reader.read(&req);
+
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+    }
 
     #[test]
-    fn test_slice_for_archive_invalid_offset() {}
+    fn test_read_invalid_archive_offset() {
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        buf.shrink_to_fit();
+
+        let reader = WhisperReader::new(&buf);
+        let res = reader.read(&req);
+
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::ParseError, res.unwrap_err().kind());
+    }
 
     #[test]
-    fn test_slice_for_archive_invalid_archive_size() {}
+    fn test_read_invalid_archive_size() {
+    let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+        let archive1 = get_archive(&header.archive_info()[0], now);
+        let archive2 = get_archive(&header.archive_info()[1], now);
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        whisper_encode_archive(&mut buf, &archive1).unwrap();
+        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        buf.shrink_to_fit();
+
+        // The buffer will contain and entire file but we only give the reader
+        // slightly more than just the header here so that we make sure to test
+        // the case where the header lies!
+        let reader = WhisperReader::new(&buf[0..80]);
+        let res = reader.read(&req);
+
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::ParseError, res.unwrap_err().kind());
+    }
 
     #[test]
-    fn test_slice_for_archive_success() {}
+    fn test_read_all_points_after_from() {}
 
     #[test]
-    fn test_points_for_request_all_points_after_from() {}
+    fn test_read_all_points_before_until() {}
 
     #[test]
-    fn test_points_for_request_all_points_before_until() {}
-
-    #[test]
-    fn test_points_for_request_mixed_data_in_middle() {}
-
-    #[test]
-    fn test_points_for_request_success() {}
-
+    fn test_read_mixed_data_in_middle() {}
 }
