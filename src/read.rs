@@ -263,8 +263,15 @@ impl<'a> WhisperReader<'a> {
     ///
     fn read(&self, req: &FetchRequest) -> WhisperResult<Vec<Point>> {
         let header = whisper_parse_header(self.bytes).to_full_result()?;
+        // validate the that requested ranges are something that we can
+        // satisfy with this database and coerce them if required. For
+        // example: bump up the starting range to our earliest range if
+        // that's the only thing preventing us from handling this request.
         let req = req.normalize(&header)?;
         let archive_info = Self::find_archive(&req, &header)?;
+        // Get the section of the mmaped file that we should be looking
+        // at based on the archive that can actually be used to satisfy
+        // the requested ranges.
         let archive_bytes = self.slice_for_archive(archive_info)?;
         let archive = whisper_parse_archive(archive_bytes, archive_info)
             .to_full_result()?;
