@@ -52,24 +52,24 @@ where
 }
 
 
-fn encode_archive<W>(writer: &mut W, archive: &Archive) -> io::Result<()>
+fn encode_data<W>(writer: &mut W, data: &Data) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
-    for point in archive.points() {
-        encode_point(writer, point)?;
+    for archive in data.archives() {
+        whisper_encode_archive(writer, archive)?;
     }
 
     Ok(())
 }
 
 
-fn encode_data<W>(writer: &mut W, data: &Data) -> io::Result<()>
+pub fn whisper_encode_archive<W>(writer: &mut W, archive: &Archive) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
-    for archive in data.archives() {
-        encode_archive(writer, archive)?;
+    for point in archive.points() {
+        encode_point(writer, point)?;
     }
 
     Ok(())
