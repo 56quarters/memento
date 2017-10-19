@@ -223,8 +223,6 @@ impl<'a> WhisperReader<'a> {
     ///
     fn slice_for_archive(&self, archive: &ArchiveInfo) -> WhisperResult<&[u8]> {
         let offset = archive.offset() as usize;
-        println!("Offset: {}", offset);
-        println!("ArhiveInfo: {:?}", archive);
         // These two conditions should never happen but it's nice to handle
         // a corrupted file gracefully here instead of just panicking. This
         // avoids crashing the calling code.
@@ -233,8 +231,6 @@ impl<'a> WhisperReader<'a> {
                 (ErrorKind::ParseError, "offset exceeds data size"),
             ));
         }
-
-        println!("Archive size: {}", archive.archive_size());
 
         if offset + archive.archive_size() > self.bytes.len() {
             return Err(WhisperError::from(
@@ -366,6 +362,9 @@ mod tests {
         whisper_encode_header(&mut buf, &header).unwrap();
         buf.shrink_to_fit();
 
+        // The buffer only contains the bytes for the header so the offset
+        // of the first archive will violate the first check for the size
+        // of the data (making sure it's greater than the offset).
         let reader = WhisperReader::new(&buf);
         let res = reader.read(&req);
 
@@ -375,7 +374,7 @@ mod tests {
 
     #[test]
     fn test_read_invalid_archive_size() {
-    let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
         let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
         let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
 
@@ -405,11 +404,63 @@ mod tests {
     }
 
     #[test]
-    fn test_read_all_points_after_from() {}
+    fn test_read_all_points_before_from() {
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+        let start = time::strptime("1997-08-20T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let archive1 = get_archive(&header.archive_info()[0], start);
+        let archive2 = get_archive(&header.archive_info()[1], start);
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        whisper_encode_archive(&mut buf, &archive1).unwrap();
+        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        buf.shrink_to_fit();
+
+        let reader = WhisperReader::new(&buf);
+        let res = reader.read(&req);
+
+        assert!(res.is_ok());
+        assert!(res.unwrap().is_empty());
+    }
 
     #[test]
-    fn test_read_all_points_before_until() {}
+    fn test_read_all_points_after_until() {
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+        let start = time::strptime("1997-08-27T18:05:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let archive1 = get_archive(&header.archive_info()[0], start);
+        let archive2 = get_archive(&header.archive_info()[1], start);
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        whisper_encode_archive(&mut buf, &archive1).unwrap();
+        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        buf.shrink_to_fit();
+
+        let reader = WhisperReader::new(&buf);
+        let res = reader.read(&req);
+
+        assert!(res.is_ok());
+        assert!(res.unwrap().is_empty());
+    }
 
     #[test]
-    fn test_read_mixed_data_in_middle() {}
+    fn test_read_success() {}
 }
