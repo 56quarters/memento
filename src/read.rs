@@ -311,12 +311,11 @@ mod tests {
 
     fn get_archive(info: &ArchiveInfo, now: time::Tm) -> Archive {
         let start_secs = now.to_timespec().sec as u32 - info.retention();
-        let mut vals = vec![];
 
-        for i in 0..info.num_points() {
-            let point_time = start_secs + (i * info.seconds_per_point());
-            vals.push(Point::new(point_time, 7.0));
-        }
+        let vals = (0..info.num_points())
+            .map(|i| start_secs + (i * info.seconds_per_point()))
+            .map(|t| Point::new(t, 7.0))
+            .collect();
 
         Archive::new(vals)
     }
@@ -410,6 +409,9 @@ mod tests {
         let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
 
         let header = get_file_header();
+        // Pick a start point for the points in each archive to ensure that the
+        // high resolution data (in archive 1, last day) will all be too old to
+        // satisfy the request since it's all before the "from" time for the request
         let start = time::strptime("1997-08-20T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
         let archive1 = get_archive(&header.archive_info()[0], start);
         let archive2 = get_archive(&header.archive_info()[1], start);
@@ -439,6 +441,9 @@ mod tests {
         let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
 
         let header = get_file_header();
+        // Pick a start point for the points in each archive to ensure that the
+        // high resolution data (in archive 1, last day) will all be too recent to
+        // satisfy the request since it's all after the "until" time for the request
         let start = time::strptime("1997-08-27T18:05:00", "%Y-%m-%dT%H:%M:%S").unwrap();
         let archive1 = get_archive(&header.archive_info()[0], start);
         let archive2 = get_archive(&header.archive_info()[1], start);
@@ -462,5 +467,84 @@ mod tests {
     }
 
     #[test]
-    fn test_read_success() {}
+    fn test_read_success_high_resolution() {
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-26T18:01:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+        // Pick a start time here that ensures that two points in the higher resolution
+        // archive overlap with the requested range (right on the tail end of the "until"
+        // time).
+        let start = time::strptime("1997-08-27T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let archive1 = get_archive(&header.archive_info()[0], start);
+        let archive2 = get_archive(&header.archive_info()[1], start);
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        whisper_encode_archive(&mut buf, &archive1).unwrap();
+        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        buf.shrink_to_fit();
+
+        let reader = WhisperReader::new(&buf);
+        let res = reader.read(&req);
+
+        assert!(res.is_ok());
+
+        let points = res.unwrap();
+        assert_eq!(2, points.len());
+        assert_eq!(
+            &vec![
+                Point::new(until.to_timespec().sec as u32 - 60, 7.0),
+                Point::new(until.to_timespec().sec as u32, 7.0)
+            ],
+            &points
+        );
+    }
+
+    #[test]
+    fn test_read_success_low_resolution() {
+        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let from = time::strptime("1997-08-20T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let until = time::strptime("1997-08-20T18:05:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+
+        let header = get_file_header();
+        // Pick a start time here that ensures that two points in the lower resolution
+        // archive overlap with the requested range (right on the tail end of the "until"
+        // time).
+        let start = time::strptime("1997-08-27T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let archive1 = get_archive(&header.archive_info()[0], start);
+        let archive2 = get_archive(&header.archive_info()[1], start);
+
+        let mut req = FetchRequest::default();
+        req.with_now_tm(now)
+            .with_from_tm(from)
+            .with_until_tm(until);
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+        whisper_encode_archive(&mut buf, &archive1).unwrap();
+        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        buf.shrink_to_fit();
+
+        let reader = WhisperReader::new(&buf);
+        let res = reader.read(&req);
+
+        assert!(res.is_ok());
+
+        let points = res.unwrap();
+        assert_eq!(2, points.len());
+        assert_eq!(
+            &vec![
+                Point::new(until.to_timespec().sec as u32 - 300, 7.0),
+                Point::new(until.to_timespec().sec as u32, 7.0)
+            ],
+            &points
+        );
+    }
 }
