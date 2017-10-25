@@ -49,7 +49,7 @@ impl FetchRequest {
 
     ///
     ///
-    pub fn with_from<T>(mut self, val: &DateTime<T>) -> Self
+    pub fn with_from<T>(mut self, val: DateTime<T>) -> Self
     where
         T: TimeZone,
     {
@@ -59,7 +59,7 @@ impl FetchRequest {
 
     ///
     ///
-    pub fn with_until<T>(mut self, val: &DateTime<T>) -> Self
+    pub fn with_until<T>(mut self, val: DateTime<T>) -> Self
     where
         T: TimeZone,
     {
@@ -69,7 +69,7 @@ impl FetchRequest {
 
     ///
     ///
-    pub fn with_now<T>(mut self, val: &DateTime<T>) -> Self
+    pub fn with_now<T>(mut self, val: DateTime<T>) -> Self
     where
         T: TimeZone,
     {
@@ -328,9 +328,9 @@ mod tests {
         let header = get_file_header();
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -352,9 +352,9 @@ mod tests {
         let header = get_file_header();
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -381,9 +381,9 @@ mod tests {
         let archive2 = get_archive(&header.archive_info()[1], now);
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -416,9 +416,9 @@ mod tests {
         let archive2 = get_archive(&header.archive_info()[1], start);
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -448,9 +448,9 @@ mod tests {
         let archive2 = get_archive(&header.archive_info()[1], start);
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -480,9 +480,9 @@ mod tests {
         let archive2 = get_archive(&header.archive_info()[1], start);
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -521,9 +521,9 @@ mod tests {
         let archive2 = get_archive(&header.archive_info()[1], start);
 
         let req = FetchRequest::default()
-            .with_now(&now)
-            .with_from(&from)
-            .with_until(&until);
+            .with_now(now)
+            .with_from(from)
+            .with_until(until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
