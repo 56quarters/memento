@@ -12,7 +12,7 @@
 
 use std::path::Path;
 
-use time::{self, Timespec, Tm, Duration};
+use chrono::{Duration, DateTime, Utc, TimeZone};
 
 use io::MappedFileStream;
 use parser::{whisper_parse_header, whisper_parse_archive};
@@ -27,9 +27,9 @@ use core::{WhisperResult, WhisperError, ErrorKind};
 ///
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FetchRequest {
-    from: Timespec,
-    until: Timespec,
-    now: Timespec,
+    from: DateTime<Utc>,
+    until: DateTime<Utc>,
+    now: DateTime<Utc>,
 }
 
 
@@ -39,7 +39,7 @@ impl FetchRequest {
     ///
     ///
     ///
-    pub fn new(from: Timespec, until: Timespec, now: Timespec) -> FetchRequest {
+    pub fn new(from: DateTime<Utc>, until: DateTime<Utc>, now: DateTime<Utc>) -> FetchRequest {
         FetchRequest {
             from: from,
             until: until,
@@ -49,41 +49,32 @@ impl FetchRequest {
 
     ///
     ///
-    pub fn with_from(&mut self, val: Timespec) -> &mut Self {
-        self.from = val;
+    pub fn with_from<T>(mut self, val: &DateTime<T>) -> Self
+    where
+        T: TimeZone,
+    {
+        self.from = val.with_timezone(&Utc);
         self
     }
 
     ///
     ///
-    pub fn with_from_tm(&mut self, val: Tm) -> &mut Self {
-        self.with_from(val.to_timespec())
-    }
-
-    ///
-    ///
-    pub fn with_until(&mut self, val: Timespec) -> &mut Self {
-        self.until = val;
+    pub fn with_until<T>(mut self, val: &DateTime<T>) -> Self
+    where
+        T: TimeZone,
+    {
+        self.until = val.with_timezone(&Utc);
         self
     }
 
     ///
     ///
-    pub fn with_until_tm(&mut self, val: Tm) -> &mut Self {
-        self.with_until(val.to_timespec())
-    }
-
-    ///
-    ///
-    pub fn with_now(&mut self, val: Timespec) -> &mut Self {
-        self.now = val;
+    pub fn with_now<T>(mut self, val: &DateTime<T>) -> Self
+    where
+        T: TimeZone,
+    {
+        self.now = val.with_timezone(&Utc);
         self
-    }
-
-    ///
-    ///
-    pub fn with_now_tm(&mut self, val: Tm) -> &mut Self {
-        self.with_now(val.to_timespec())
     }
 
     ///
@@ -127,7 +118,7 @@ impl FetchRequest {
 
     ///
     fn retention(&self) -> Duration {
-        self.now - self.from
+        self.now.signed_duration_since(self.from)
     }
 }
 
@@ -136,7 +127,7 @@ impl Default for FetchRequest {
     ///
     ///
     fn default() -> Self {
-        let now = time::get_time();
+        let now = Utc::now();
         let from = now - Duration::days(1);
         let until = now;
 
@@ -249,10 +240,10 @@ impl<'a> WhisperReader<'a> {
             .points()
             .iter()
             .filter(|p| {
-                Timespec::new(i64::from(p.timestamp()), 0) >= request.from
+                Utc.timestamp(i64::from(p.timestamp()), 0) >= request.from
             })
             .filter(|p| {
-                Timespec::new(i64::from(p.timestamp()), 0) <= request.until
+                Utc.timestamp(i64::from(p.timestamp()), 0) <= request.until
             })
             .cloned()
             .collect()
@@ -282,11 +273,13 @@ impl<'a> WhisperReader<'a> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::{Utc, DateTime};
+
     use super::{FetchRequest, WhisperReader};
+
     use encoder::{whisper_encode_header, whisper_encode_archive};
     use types::{Header, Metadata, ArchiveInfo, AggregationType, Archive, Point};
     use core::ErrorKind;
-    use time;
 
     fn get_file_header() -> Header {
         let metadata = Metadata::new(
@@ -309,8 +302,8 @@ mod tests {
         Header::new(metadata, vec![info1, info2])
     }
 
-    fn get_archive(info: &ArchiveInfo, now: time::Tm) -> Archive {
-        let start_secs = now.to_timespec().sec as u32 - info.retention();
+    fn get_archive(info: &ArchiveInfo, now: DateTime<Utc>) -> Archive {
+        let start_secs = now.timestamp() as u32 - info.retention();
 
         let vals = (0..info.num_points())
             .map(|i| start_secs + (i * info.seconds_per_point()))
@@ -320,18 +313,24 @@ mod tests {
         Archive::new(vals)
     }
 
+    fn parse_utc(val: &str) -> DateTime<Utc> {
+        DateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S%z")
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap()
+    }
+
     #[test]
     fn test_read_no_archives_for_request() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-04T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-07T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-04T12:00:00+0000");
+        let until = parse_utc("1997-08-07T12:00:00+0000");
 
         let header = get_file_header();
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -346,16 +345,16 @@ mod tests {
 
     #[test]
     fn test_read_invalid_archive_offset() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-26T12:00:00+0000");
+        let until = parse_utc("1997-08-26T18:00:00+0000");
 
         let header = get_file_header();
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -373,18 +372,18 @@ mod tests {
 
     #[test]
     fn test_read_invalid_archive_size() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-26T12:00:00+0000");
+        let until = parse_utc("1997-08-26T18:00:00+0000");
 
         let header = get_file_header();
         let archive1 = get_archive(&header.archive_info()[0], now);
         let archive2 = get_archive(&header.archive_info()[1], now);
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -404,22 +403,22 @@ mod tests {
 
     #[test]
     fn test_read_all_points_before_from() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-26T12:00:00+0000");
+        let until = parse_utc("1997-08-26T18:00:00+0000");
 
         let header = get_file_header();
         // Pick a start point for the points in each archive to ensure that the
         // high resolution data (in archive 1, last day) will all be too old to
         // satisfy the request since it's all before the "from" time for the request
-        let start = time::strptime("1997-08-20T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let start = parse_utc("1997-08-20T12:00:00+0000");
         let archive1 = get_archive(&header.archive_info()[0], start);
         let archive2 = get_archive(&header.archive_info()[1], start);
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -436,22 +435,22 @@ mod tests {
 
     #[test]
     fn test_read_all_points_after_until() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-26T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-26T12:00:00+0000");
+        let until = parse_utc("1997-08-26T18:00:00+0000");
 
         let header = get_file_header();
         // Pick a start point for the points in each archive to ensure that the
         // high resolution data (in archive 1, last day) will all be too recent to
         // satisfy the request since it's all after the "until" time for the request
-        let start = time::strptime("1997-08-27T18:05:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let start = parse_utc("1997-08-27T18:05:00+0000");
         let archive1 = get_archive(&header.archive_info()[0], start);
         let archive2 = get_archive(&header.archive_info()[1], start);
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -468,22 +467,22 @@ mod tests {
 
     #[test]
     fn test_read_success_high_resolution() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-26T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-26T18:01:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-26T12:00:00+0000");
+        let until = parse_utc("1997-08-26T18:01:00+0000");
 
         let header = get_file_header();
         // Pick a start time here that ensures that two points in the higher resolution
         // archive overlap with the requested range (right on the tail end of the "until"
         // time).
-        let start = time::strptime("1997-08-27T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let start = parse_utc("1997-08-27T18:00:00+0000");
         let archive1 = get_archive(&header.archive_info()[0], start);
         let archive2 = get_archive(&header.archive_info()[1], start);
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -500,8 +499,8 @@ mod tests {
         assert_eq!(2, points.len());
         assert_eq!(
             &vec![
-                Point::new(until.to_timespec().sec as u32 - 60, 7.0),
-                Point::new(until.to_timespec().sec as u32, 7.0)
+                Point::new(until.timestamp() as u32 - 60, 7.0),
+                Point::new(until.timestamp() as u32, 7.0)
             ],
             &points
         );
@@ -509,22 +508,22 @@ mod tests {
 
     #[test]
     fn test_read_success_low_resolution() {
-        let now = time::strptime("1997-08-27T02:14:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let from = time::strptime("1997-08-20T12:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
-        let until = time::strptime("1997-08-20T18:05:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let now = parse_utc("1997-08-27T02:14:00+0000");
+        let from = parse_utc("1997-08-20T12:00:00+0000");
+        let until = parse_utc("1997-08-20T18:05:00+0000");
 
         let header = get_file_header();
         // Pick a start time here that ensures that two points in the lower resolution
         // archive overlap with the requested range (right on the tail end of the "until"
         // time).
-        let start = time::strptime("1997-08-27T18:00:00", "%Y-%m-%dT%H:%M:%S").unwrap();
+        let start = parse_utc("1997-08-27T18:00:00+0000");
         let archive1 = get_archive(&header.archive_info()[0], start);
         let archive2 = get_archive(&header.archive_info()[1], start);
 
-        let mut req = FetchRequest::default();
-        req.with_now_tm(now)
-            .with_from_tm(from)
-            .with_until_tm(until);
+        let req = FetchRequest::default()
+            .with_now(&now)
+            .with_from(&from)
+            .with_until(&until);
 
         let mut buf = vec![];
         whisper_encode_header(&mut buf, &header).unwrap();
@@ -541,8 +540,8 @@ mod tests {
         assert_eq!(2, points.len());
         assert_eq!(
             &vec![
-                Point::new(until.to_timespec().sec as u32 - 300, 7.0),
-                Point::new(until.to_timespec().sec as u32, 7.0)
+                Point::new(until.timestamp() as u32 - 300, 7.0),
+                Point::new(until.timestamp() as u32, 7.0)
             ],
             &points
         );

@@ -1,13 +1,9 @@
 extern crate whisper;
-extern crate time;
-
-use time::Timespec;
 
 use whisper::types::AggregationType;
 use whisper::encoder::{whisper_encode_header, whisper_encode_file};
 use whisper::io::MappedFileStream;
 use whisper::parser::{whisper_parse_file, whisper_parse_header};
-use whisper::read::{FetchRequest, WhisperFileReader};
 
 const SECONDS_PER_YEAR: u32 = 3600 * 24 * 365;
 
@@ -118,20 +114,6 @@ fn test_mapped_file_stream_immutable() {
             Ok(0)
         })
         .unwrap();
-}
-
-
-#[test]
-fn test_fetch_points() {
-    let mut req = FetchRequest::default();
-    req.with_from(Timespec::new(1502040060, 0))
-        .with_until(Timespec::new(1502380320, 0))
-        .with_now(Timespec::new(1502474880, 0));
-
-    let reader = WhisperFileReader::new(MappedFileStream::new());
-    let points = reader.read("tests/upper_01.wsp", &req).unwrap();
-
-    println!("Points: {:?}", points);
 }
 
 
