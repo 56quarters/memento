@@ -39,11 +39,19 @@ impl FetchRequest {
     ///
     ///
     ///
-    pub fn new(from: DateTime<Utc>, until: DateTime<Utc>, now: DateTime<Utc>) -> FetchRequest {
+    pub fn new<T>(
+        from: DateTime<T>,
+        until: DateTime<T>,
+        now: DateTime<T>
+    ) -> FetchRequest
+    where
+        T: TimeZone,
+
+    {
         FetchRequest {
-            from: from,
-            until: until,
-            now: now,
+            from: from.with_timezone(&Utc),
+            until: until.with_timezone(&Utc),
+            now: now.with_timezone(&Utc),
         }
     }
 
