@@ -283,11 +283,11 @@ impl<'a> WhisperReader<'a> {
 mod tests {
     use chrono::{Utc, DateTime};
 
-    use super::{FetchRequest, WhisperReader};
-
     use encoder::{whisper_encode_header, whisper_encode_archive};
     use types::{Header, Metadata, ArchiveInfo, AggregationType, Archive, Point};
     use core::ErrorKind;
+
+    use super::{FetchRequest, WhisperReader};
 
     fn get_file_header() -> Header {
         let metadata = Metadata::new(
@@ -553,5 +553,25 @@ mod tests {
             ],
             &points
         );
+    }
+
+    #[test]
+    fn test_fetch_request_normalize_nonsense_request() {
+    }
+
+    #[test]
+    fn test_fetch_request_normalize_future_start_time() {
+    }
+
+    #[test]
+    fn test_fetch_request_normalize_end_exceeds_retention() {
+    }
+
+    #[test]
+    fn test_fetch_request_normalize_from_older_than_oldest() {
+    }
+
+    #[test]
+    fn test_fetch_request_normalize_from_not_older_than_oldest() {
     }
 }
