@@ -19,7 +19,7 @@ extern crate fs2;
 // Need to fix integration tests that expect access to these right
 // now
 
-pub mod core; // -> errors
+pub mod errors;
 pub mod encoder;
 pub mod read;
 pub mod write;

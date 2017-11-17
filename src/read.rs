@@ -17,7 +17,7 @@ use chrono::{Duration, DateTime, Utc, TimeZone};
 use io::MappedFileStream;
 use parser::{whisper_parse_header, whisper_parse_archive};
 use types::{Header, Point, Archive, ArchiveInfo};
-use core::{WhisperResult, WhisperError, ErrorKind};
+use errors::{WhisperResult, WhisperError, ErrorKind};
 
 
 ///
@@ -285,7 +285,7 @@ mod tests {
 
     use encoder::{whisper_encode_header, whisper_encode_archive};
     use types::{Header, Metadata, ArchiveInfo, AggregationType, Archive, Point};
-    use core::ErrorKind;
+    use errors::ErrorKind;
 
     use super::{FetchRequest, WhisperReader};
 

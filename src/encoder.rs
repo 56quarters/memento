@@ -15,7 +15,7 @@ use std::io;
 use byteorder::{WriteBytesExt, NetworkEndian};
 
 use types::{WhisperFile, Header, Metadata, ArchiveInfo, Archive, Point, Data};
-use core::WhisperResult;
+use errors::WhisperResult;
 
 
 fn encode_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
