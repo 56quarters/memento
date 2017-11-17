@@ -74,6 +74,11 @@ pub enum FlushBehavior {
 }
 
 
+///
+///
+///
+///
+///
 #[derive(Debug)]
 pub struct MappedFileStream {
     locking: bool,
@@ -81,6 +86,8 @@ pub struct MappedFileStream {
 }
 
 // TODO: How to communicate flush range back from consumer?
+
+// TODO: Need to create a trait for this for testing
 
 impl Default for MappedFileStream {
     fn default() -> Self {
@@ -154,6 +161,7 @@ impl MappedFileStream {
 
 #[cfg(test)]
 mod tests {
+
 
 
 }

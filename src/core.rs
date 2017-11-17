@@ -28,6 +28,12 @@ enum ErrorRepr {
 }
 
 
+// TODO: Add some more variants to this:
+// * InvalidDateRange
+// * InvalidDateStart
+// * InvalidDateEnd
+// * CorruptDatabase
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ErrorKind {
     IoError, // Errors reading or writing beyond our control
