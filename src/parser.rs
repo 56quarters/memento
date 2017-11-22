@@ -123,30 +123,159 @@ named!(pub whisper_parse_file<&[u8], WhisperFile>,
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test_parse_aggregation_type() {}
+    use types::{AggregationType, Metadata, ArchiveInfo};
+
+    use super::{parse_aggregation_type, parse_archive_info, parse_archive_infos,
+                parse_data, parse_metadata, parse_point, whisper_parse_header,
+                whisper_parse_archive, whisper_parse_file};
+
+    const SECONDS_PER_YEAR: u32 = 3600 * 24 * 365;
 
     #[test]
-    fn test_parse_metadata() {}
+    fn test_parse_aggregation_type() {
+        let bytes = &include_bytes!("../tests/upper_01.wsp")[0..4];
+        let res = parse_aggregation_type(bytes).unwrap().1;
+        assert_eq!(AggregationType::Max, res);
+    }
 
     #[test]
-    fn test_parse_archive_info() {}
+    fn test_parse_archive_info() {
+        let bytes = &include_bytes!("../tests/count_01.wsp")[16..28];
+        let res = parse_archive_info(bytes).unwrap().1;
+
+        assert_eq!(76, res.offset());
+        assert_eq!(10, res.seconds_per_point());
+        assert_eq!(8640, res.num_points());
+        assert_eq!(86400, res.retention());
+    }
 
     #[test]
-    fn test_parse_archive_infos() {}
+    fn test_parse_archive_infos() {
+        let bytes = &include_bytes!("../tests/mean_01.wsp")[16..76];
+        let metadata = Metadata::new(
+            AggregationType::Average,
+            31536000,
+            0.5,
+            5
+        );
+
+        let res = parse_archive_infos(bytes, &metadata).unwrap().1;
+        assert_eq!(10, res[0].seconds_per_point());
+        assert_eq!(60, res[1].seconds_per_point());
+        assert_eq!(300, res[2].seconds_per_point());
+        assert_eq!(600, res[3].seconds_per_point());
+        assert_eq!(3600, res[4].seconds_per_point());
+    }
 
     #[test]
-    fn test_parse_point() {}
+    fn test_parse_data() {
+        // Get the data for the first two archives, stopping at the third
+        let bytes = &include_bytes!("../tests/upper_01.wsp")[76..224716];
+        let info1 = ArchiveInfo::new(
+            76,
+            10,
+            8640
+        );
+        let info2 = ArchiveInfo::new(
+            103756,
+            60,
+            10080
+        );
+
+        let res = parse_data(bytes, &vec![info1, info2]).unwrap().1;
+        assert_eq!(8640, res.archives()[0].points().len());
+        assert_eq!(10080, res.archives()[1].points().len());
+    }
 
     #[test]
-    fn test_parse_archive() {}
+    fn test_parse_metadata() {
+        let bytes = &include_bytes!("../tests/count_01.wsp")[0..16];
+        let res = parse_metadata(bytes).unwrap().1;
+
+        assert_eq!(AggregationType::Sum, res.aggregation());
+        assert_eq!(31536000, res.max_retention());
+        assert_eq!(0.5, res.x_files_factor());
+        assert_eq!(5, res.archive_count());
+    }
 
     #[test]
-    fn test_parse_data() {}
+    fn test_parse_point() {
+        // first point with a value in the db, first point in second archive
+        let bytes = &include_bytes!("../tests/mean_01.wsp")[103756..103768];
+        let res = parse_point(bytes).unwrap().1;
+
+        assert_eq!(1501988400, res.timestamp());
+        assert_eq!(100.0, res.value());
+    }
 
     #[test]
-    fn test_whisper_parse_header() {}
+    fn test_parse_archive() {
+        // second archive
+        let bytes = &include_bytes!("../tests/upper_01.wsp")[103756..224716];
+        let info = ArchiveInfo::new(
+            103756,
+            60,
+            10080
+        );
+
+        let res = whisper_parse_archive(bytes, &info).unwrap().1;
+        assert_eq!(10080, res.points().len());
+    }
 
     #[test]
-    fn test_whisper_parse_file() {}
+    fn test_whisper_parse_header() {
+        let bytes = include_bytes!("../tests/mean_01.wsp");
+        let res = whisper_parse_header(bytes);
+        let header = res.unwrap().1;
+        let meta = header.metadata();
+        let info = header.archive_info();
+
+        assert_eq!(AggregationType::Average, meta.aggregation());
+        assert_eq!(SECONDS_PER_YEAR, meta.max_retention());
+        assert_eq!(5, meta.archive_count());
+
+        assert_eq!(10, info[0].seconds_per_point());
+        assert_eq!(60, info[1].seconds_per_point());
+        assert_eq!(300, info[2].seconds_per_point());
+        assert_eq!(600, info[3].seconds_per_point());
+        assert_eq!(3600, info[4].seconds_per_point());
+
+        assert_eq!(8640, info[0].num_points());
+        assert_eq!(10_080, info[1].num_points());
+        assert_eq!(8640, info[2].num_points());
+        assert_eq!(25_920, info[3].num_points());
+        assert_eq!(8760, info[4].num_points());
+    }
+
+    #[test]
+    fn test_whisper_parse_file() {
+        let bytes = include_bytes!("../tests/mean_01.wsp");
+        let res = whisper_parse_file(bytes);
+        let file = res.unwrap().1;
+        let header = file.header();
+        let data = file.data();
+
+        let meta = header.metadata();
+        let info = header.archive_info();
+        let archives = data.archives();
+
+        assert_eq!(AggregationType::Average, meta.aggregation());
+        assert_eq!(SECONDS_PER_YEAR, meta.max_retention());
+        assert_eq!(5, meta.archive_count());
+
+        assert_eq!(8640, info[0].num_points());
+        assert_eq!(8640, archives[0].points().len());
+
+        assert_eq!(10_080, info[1].num_points());
+        assert_eq!(10_080, archives[1].points().len());
+
+        assert_eq!(8640, info[2].num_points());
+        assert_eq!(8640, archives[2].points().len());
+
+        assert_eq!(25_920, info[3].num_points());
+        assert_eq!(25_920, archives[3].points().len());
+
+        assert_eq!(8760, info[4].num_points());
+        assert_eq!(8760, archives[4].points().len());
+    }
 }

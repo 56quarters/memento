@@ -24,5 +24,5 @@ pub mod encoder;
 pub mod read;
 pub mod write;
 pub mod parser;
-pub mod types; // repr? file? format? layout?
-pub mod io; // something else
+pub mod types;
+pub mod io;
