@@ -149,7 +149,7 @@ impl Default for FetchRequest {
 ///
 ///
 ///
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WhisperFileReader {
     mapper: MappedFileStream,
 }
