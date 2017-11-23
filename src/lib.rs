@@ -15,14 +15,13 @@ extern crate chrono;
 extern crate memmap;
 extern crate fs2;
 
-// TODO Make all these modules private and selectively export here
-// Need to fix integration tests that expect access to these right
-// now
-
 pub mod errors;
-pub mod encoder;
-pub mod read;
-pub mod write;
-pub mod parser;
 pub mod types;
-pub mod io;
+pub mod encoder;
+pub mod parser;
+
+mod read;
+mod write;
+mod io;
+
+pub use read::{FetchRequest, WhisperFileReader};

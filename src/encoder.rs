@@ -92,3 +92,199 @@ where
     whisper_encode_header(writer, file.header())?;
     Ok(encode_data(writer, file.data())?)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use types::{AggregationType, Metadata, ArchiveInfo, Point, Header, Archive, Data,
+                WhisperFile};
+
+    use super::{encode_metadata, encode_archive_info, encode_point, encode_data,
+                whisper_encode_archive, whisper_encode_header, whisper_encode_file};
+
+    #[test]
+    fn test_encode_metadata() {
+        let metadata = Metadata::new(
+            AggregationType::Max,
+            31536000,
+            0.5,
+            5
+        );
+
+        // Python: struct.pack('>LLfL', 4, 31536000, 0.5, 5).hex()
+        let expected = vec![
+            0x00, 0x00, 0x00, 0x04,
+            0x01, 0xe1, 0x33, 0x80,
+            0x3f, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x05
+        ];
+
+        let mut buf = vec![];
+        encode_metadata(&mut buf, &metadata).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+
+    #[test]
+    fn test_encode_archive_info() {
+        let info = ArchiveInfo::new(76, 10, 8640);
+
+        // Python: struct.pack('>LLL', 76, 10, 8640).hex()
+        let expected = vec![
+            0x00, 0x00, 0x00, 0x4c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x21, 0xc0
+        ];
+
+        let mut buf = vec![];
+        encode_archive_info(&mut buf, &vec![info]).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+
+    #[test]
+    fn test_encode_point() {
+        let point = Point::new(1511396041, 42.0);
+
+        // Python: struct.pack('>Ld', 1511396041, 42.0).hex()
+        let expected = vec![
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        let mut buf = vec![];
+        encode_point(&mut buf, &point).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+
+    #[test]
+    fn test_encode_data() {
+        let point1 = Point::new(1511396041, 42.0);
+        let point2 = Point::new(1511396051, 42.0);
+        let archive = Archive::new(vec![point1, point2]);
+        let data = Data::new(vec![archive]);
+
+        // Python:
+        // struct.pack('>Ld', 1511396041, 42.0).hex()
+        // struct.pack('>Ld', 1511396051, 42.0).hex()
+        let expected = vec![
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+            0x5a, 0x16, 0x12, 0xd3,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        let mut buf = vec![];
+        encode_data(&mut buf, &data).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+
+    #[test]
+    fn test_whisper_encode_archive() {
+        let point1 = Point::new(1511396041, 42.0);
+        let point2 = Point::new(1511396051, 42.0);
+        let archive = Archive::new(vec![point1, point2]);
+
+        // Python:
+        // struct.pack('>Ld', 1511396041, 42.0).hex()
+        // struct.pack('>Ld', 1511396051, 42.0).hex()
+        let expected = vec![
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+            0x5a, 0x16, 0x12, 0xd3,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        let mut buf = vec![];
+        whisper_encode_archive(&mut buf, &archive).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+
+    #[test]
+    fn test_whisper_encode_header() {
+        let metadata = Metadata::new(
+            AggregationType::Min,
+            86400,
+            0.5,
+            1
+        );
+        let info = ArchiveInfo::new(
+            28,
+            10,
+            8640
+        );
+        let header = Header::new(metadata, vec![info]);
+
+        // Python:
+        // struct.pack('>LLfL', 5, 86400, 0.5, 1).hex()
+        // struct.pack('>LLL', 28, 10, 8640).hex()
+        let expected = vec![
+            0x00, 0x00, 0x00, 0x05,
+            0x00, 0x01, 0x51, 0x80,
+            0x3f, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
+
+            0x00, 0x00, 0x00, 0x1c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x21, 0xc0
+        ];
+
+        let mut buf = vec![];
+        whisper_encode_header(&mut buf, &header).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+
+    #[test]
+    fn test_whisper_encode_file() {
+        let metadata = Metadata::new(
+            AggregationType::Min,
+            86400,
+            0.5,
+            1
+        );
+        let info = ArchiveInfo::new(
+            28,
+            10,
+            8640
+        );
+        let header = Header::new(metadata, vec![info]);
+        let point1 = Point::new(1511396041, 42.0);
+        let point2 = Point::new(1511396051, 42.0);
+        let archive = Archive::new(vec![point1, point2]);
+        let data = Data::new(vec![archive]);
+        let file = WhisperFile::new(header, data);
+
+        // Python:
+        // struct.pack('>LLfL', 5, 86400, 0.5, 1).hex()
+        // struct.pack('>LLL', 28, 10, 8640).hex()
+        // struct.pack('>Ld', 1511396041, 42.0).hex()
+        // struct.pack('>Ld', 1511396051, 42.0).hex()
+        let expected = vec![
+            0x00, 0x00, 0x00, 0x05,
+            0x00, 0x01, 0x51, 0x80,
+            0x3f, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
+
+            0x00, 0x00, 0x00, 0x1c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x21, 0xc0,
+
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+            0x5a, 0x16, 0x12, 0xd3,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        let mut buf = vec![];
+        whisper_encode_file(&mut buf, &file).unwrap();
+
+        assert_eq!(&expected, &buf);
+    }
+}
