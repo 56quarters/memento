@@ -25,3 +25,4 @@ mod write;
 mod io;
 
 pub use read::{FetchRequest, WhisperFileReader};
+pub use io::MappedFileStream;

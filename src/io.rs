@@ -11,7 +11,7 @@
 //! Functions to read and write parts of the Whisper format to disk
 
 use std::io;
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::path::Path;
 
 use fs2::FileExt;
@@ -66,14 +66,6 @@ impl<'a> Drop for FileLocker<'a> {
 }
 
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum FlushBehavior {
-    NoFlush,
-    Flush,
-    FlushAsync,
-}
-
-
 ///
 ///
 ///
@@ -82,10 +74,7 @@ pub enum FlushBehavior {
 #[derive(Debug, Clone)]
 pub struct MappedFileStream {
     locking: bool,
-    flushing: FlushBehavior,
 }
-
-// TODO: How to communicate flush range back from consumer?
 
 // TODO: Need to create a trait for this for testing
 
@@ -93,7 +82,6 @@ impl Default for MappedFileStream {
     fn default() -> Self {
         MappedFileStream {
             locking: true,
-            flushing: FlushBehavior::Flush,
         }
     }
 }
@@ -107,36 +95,6 @@ impl MappedFileStream {
     pub fn with_locking(&mut self, locking: bool) -> &mut Self {
         self.locking = locking;
         self
-    }
-
-    pub fn with_flushing(&mut self, flushing: FlushBehavior) -> &mut Self {
-        self.flushing = flushing;
-        self
-    }
-
-    pub fn run_mutable<P, F, T>(&mut self, path: P, consumer: F) -> WhisperResult<T>
-    where
-        P: AsRef<Path>,
-        F: Fn(&mut [u8]) -> WhisperResult<T>,
-    {
-        let file = OpenOptions::new().read(true).write(true).open(path)?;
-        // Not used, we just need it to unlock the file in its destructor
-        let _locker = FileLocker::lock_exclusive(self.locking, &file)?;
-
-        let mut mmap = Mmap::open(&file, Protection::ReadWrite)?;
-        let res = {
-            // Unsafe is OK here since we've obtained an exclusive (write) lock
-            let bytes = unsafe { mmap.as_mut_slice() };
-            consumer(bytes)?
-        };
-
-        match self.flushing {
-            FlushBehavior::Flush => mmap.flush()?,
-            FlushBehavior::FlushAsync => mmap.flush_async()?,
-            _ => (),
-        };
-
-        Ok(res)
     }
 
     pub fn run_immutable<P, F, T>(&self, path: P, consumer: F) -> WhisperResult<T>
@@ -162,20 +120,6 @@ impl MappedFileStream {
 #[cfg(test)]
 mod tests {
     use super::MappedFileStream;
-
-    #[test]
-    fn test_mapped_file_stream_mutable() {
-        let mut expected: [u8; 1024] = [0; 1024];
-        let expected_ref = &mut expected as &mut [u8];
-
-        let mut mapper = MappedFileStream::new();
-        let _ = mapper
-            .run_mutable("tests/zero_file.bin", |bytes| {
-                assert_eq!(expected_ref, bytes);
-                Ok(0)
-            })
-            .unwrap();
-    }
 
     #[test]
     fn test_mapped_file_stream_immutable() {
