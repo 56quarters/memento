@@ -17,7 +17,7 @@ use std::path::Path;
 use fs2::FileExt;
 use memmap::{Mmap, Protection};
 
-use errors::WhisperResult;
+use memento_core::errors::WhisperResult;
 
 struct FileLocker<'a> {
     enabled: bool,

@@ -15,9 +15,9 @@ use std::path::Path;
 use chrono::{Duration, DateTime, Utc, TimeZone};
 
 use io::MappedFileStream;
-use parser::{whisper_parse_header, whisper_parse_archive};
-use types::{Header, Point, Archive, ArchiveInfo};
-use errors::{WhisperResult, WhisperError, ErrorKind};
+use memento_core::parser::{whisper_parse_header, whisper_parse_archive};
+use memento_core::types::{Header, Point, Archive, ArchiveInfo};
+use memento_core::errors::{WhisperResult, WhisperError, ErrorKind};
 
 
 ///
@@ -283,9 +283,10 @@ impl<'a> WhisperReader<'a> {
 mod tests {
     use chrono::{Utc, DateTime};
 
-    use encoder::{whisper_encode_header, whisper_encode_archive};
-    use types::{Header, Metadata, ArchiveInfo, AggregationType, Archive, Point};
-    use errors::ErrorKind;
+    use memento_core::errors::ErrorKind;
+    use memento_core::encoder::{whisper_encode_header, whisper_encode_archive};
+    use memento_core::types::{Header, Metadata, ArchiveInfo, AggregationType,
+                                   Archive, Point};
 
     use super::{FetchRequest, WhisperReader};
 

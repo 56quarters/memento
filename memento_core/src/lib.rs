@@ -8,14 +8,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate memento_core;
-extern crate chrono;
-extern crate memmap;
-extern crate fs2;
+#[macro_use]
+extern crate nom;
+extern crate byteorder;
 
-mod read;
-mod write;
-mod io;
-
-pub use read::{FetchRequest, WhisperFileReader};
-pub use io::MappedFileStream;
+pub mod encoder;
+pub mod errors;
+pub mod parser;
+pub mod types;

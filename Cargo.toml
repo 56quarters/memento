@@ -1,11 +1,10 @@
 [package]
-name = "whisper"
+name = "memento"
 version = "0.1.0"
 authors = ["TSH Labs"]
 
 [dependencies]
-byteorder = "1.1.0"
 chrono = "0.4.0"
 fs2 = "0.4.2"
-nom = "3.2.0"
 memmap = "0.5.2"
+memento_core = { path = "memento_core" }

@@ -133,14 +133,14 @@ mod tests {
 
     #[test]
     fn test_parse_aggregation_type() {
-        let bytes = &include_bytes!("../tests/upper_01.wsp")[0..4];
+        let bytes = &include_bytes!("../../tests/upper_01.wsp")[0..4];
         let res = parse_aggregation_type(bytes).unwrap().1;
         assert_eq!(AggregationType::Max, res);
     }
 
     #[test]
     fn test_parse_archive_info() {
-        let bytes = &include_bytes!("../tests/count_01.wsp")[16..28];
+        let bytes = &include_bytes!("../../tests/count_01.wsp")[16..28];
         let res = parse_archive_info(bytes).unwrap().1;
 
         assert_eq!(76, res.offset());
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_parse_archive_infos() {
-        let bytes = &include_bytes!("../tests/mean_01.wsp")[16..76];
+        let bytes = &include_bytes!("../../tests/mean_01.wsp")[16..76];
         let metadata = Metadata::new(
             AggregationType::Average,
             31536000,
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn test_parse_data() {
         // Get the data for the first two archives, stopping at the third
-        let bytes = &include_bytes!("../tests/upper_01.wsp")[76..224716];
+        let bytes = &include_bytes!("../../tests/upper_01.wsp")[76..224716];
         let info1 = ArchiveInfo::new(
             76,
             10,
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_parse_metadata() {
-        let bytes = &include_bytes!("../tests/count_01.wsp")[0..16];
+        let bytes = &include_bytes!("../../tests/count_01.wsp")[0..16];
         let res = parse_metadata(bytes).unwrap().1;
 
         assert_eq!(AggregationType::Sum, res.aggregation());
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn test_parse_point() {
         // first point with a value in the db, first point in second archive
-        let bytes = &include_bytes!("../tests/mean_01.wsp")[103756..103768];
+        let bytes = &include_bytes!("../../tests/mean_01.wsp")[103756..103768];
         let res = parse_point(bytes).unwrap().1;
 
         assert_eq!(1501988400, res.timestamp());
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn test_parse_archive() {
         // second archive
-        let bytes = &include_bytes!("../tests/upper_01.wsp")[103756..224716];
+        let bytes = &include_bytes!("../../tests/upper_01.wsp")[103756..224716];
         let info = ArchiveInfo::new(
             103756,
             60,
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_whisper_parse_header() {
-        let bytes = include_bytes!("../tests/mean_01.wsp");
+        let bytes = include_bytes!("../../tests/mean_01.wsp");
         let res = whisper_parse_header(bytes);
         let header = res.unwrap().1;
         let meta = header.metadata();
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn test_whisper_parse_file() {
-        let bytes = include_bytes!("../tests/mean_01.wsp");
+        let bytes = include_bytes!("../../tests/mean_01.wsp");
         let res = whisper_parse_file(bytes);
         let file = res.unwrap().1;
         let header = file.header();

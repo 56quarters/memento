@@ -1,4 +1,4 @@
-extern crate whisper;
+extern crate memento;
 
 
 #[test]
