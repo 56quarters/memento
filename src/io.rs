@@ -36,17 +36,6 @@ impl<'a> FileLocker<'a> {
             file: file,
         })
     }
-
-    fn lock_exclusive(enabled: bool, file: &'a File) -> io::Result<FileLocker<'a>> {
-        if enabled {
-            file.lock_exclusive()?;
-        }
-
-        Ok(FileLocker {
-            enabled: enabled,
-            file: file,
-        })
-    }
 }
 
 
