@@ -1,4 +1,4 @@
-// Whisper
+// Memento - A Whisper implemention in Rust
 //
 // Copyright 2017 TSH Labs
 //
