@@ -29,7 +29,7 @@ where
 }
 
 
-fn encode_archive_info<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()>
+fn encode_archive_infos<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
@@ -81,7 +81,7 @@ where
     W: WriteBytesExt,
 {
     encode_metadata(writer, header.metadata())?;
-    Ok(encode_archive_info(writer, header.archive_info())?)
+    Ok(encode_archive_infos(writer, header.archive_info())?)
 }
 
 
@@ -99,7 +99,7 @@ mod tests {
     use types::{AggregationType, Metadata, ArchiveInfo, Point, Header, Archive, Data,
                 WhisperFile};
 
-    use super::{encode_metadata, encode_archive_info, encode_point, encode_data,
+    use super::{encode_metadata, encode_archive_infos, encode_point, encode_data,
                 whisper_encode_archive, whisper_encode_header, whisper_encode_file};
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_archive_info() {
+    fn test_encode_archive_infos() {
         let info = ArchiveInfo::new(76, 10, 8640);
 
         // Python: struct.pack('>LLL', 76, 10, 8640).hex()
@@ -137,7 +137,7 @@ mod tests {
         ];
 
         let mut buf = vec![];
-        encode_archive_info(&mut buf, &vec![info]).unwrap();
+        encode_archive_infos(&mut buf, &vec![info]).unwrap();
 
         assert_eq!(&expected, &buf);
     }
