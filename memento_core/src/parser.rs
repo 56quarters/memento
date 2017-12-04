@@ -107,7 +107,9 @@ pub fn whisper_parse_archive<'a, 'b>(
     input: &'a [u8],
     info: &'b ArchiveInfo,
 ) -> IResult<&'a [u8], Archive> {
-    let (remaining, points) = try_parse!(input, count!(parse_point, info.num_points() as usize));
+    let (remaining, points) = try_parse!(
+        input, count!(parse_point, info.num_points() as usize));
+
     IResult::Done(remaining, Archive::new(points))
 }
 
@@ -123,159 +125,197 @@ named!(pub whisper_parse_file<&[u8], WhisperFile>,
 
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Metadata, ArchiveInfo};
+    use types::{AggregationType, Metadata, ArchiveInfo, Archive, Point,
+                Data, Header, WhisperFile};
 
     use super::{parse_aggregation_type, parse_archive_info, parse_archive_infos,
                 parse_data, parse_metadata, parse_point, whisper_parse_header,
                 whisper_parse_archive, whisper_parse_file};
 
-    const SECONDS_PER_YEAR: u32 = 3600 * 24 * 365;
-
     #[test]
     fn test_parse_aggregation_type() {
-        let bytes = &include_bytes!("../../tests/upper_01.wsp")[0..4];
-        let res = parse_aggregation_type(bytes).unwrap().1;
+        // Python: struct.pack('>L', 4).hex()
+        let bytes = vec![0x00, 0x00, 0x00, 0x04];
+        let res = parse_aggregation_type(&bytes).unwrap().1;
         assert_eq!(AggregationType::Max, res);
     }
 
     #[test]
     fn test_parse_archive_info() {
-        let bytes = &include_bytes!("../../tests/count_01.wsp")[16..28];
-        let res = parse_archive_info(bytes).unwrap().1;
+        let expected = ArchiveInfo::new(76, 10, 8640);
 
-        assert_eq!(76, res.offset());
-        assert_eq!(10, res.seconds_per_point());
-        assert_eq!(8640, res.num_points());
-        assert_eq!(86400, res.retention());
+        // Python: struct.pack('>LLL', 76, 10, 8640).hex()
+        let bytes = vec![
+            0x00, 0x00, 0x00, 0x4c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x21, 0xc0
+        ];
+
+        let res = parse_archive_info(&bytes).unwrap().1;
+        assert_eq!(expected, res);
     }
 
     #[test]
     fn test_parse_archive_infos() {
-        let bytes = &include_bytes!("../../tests/mean_01.wsp")[16..76];
-        let metadata = Metadata::new(
-            AggregationType::Average,
-            31536000,
-            0.5,
-            5
-        );
+        let expected = ArchiveInfo::new(28, 10, 8640);
+        let metadata = Metadata::new(AggregationType::Average, 86400, 0.5, 1);
 
-        let res = parse_archive_infos(bytes, &metadata).unwrap().1;
-        assert_eq!(10, res[0].seconds_per_point());
-        assert_eq!(60, res[1].seconds_per_point());
-        assert_eq!(300, res[2].seconds_per_point());
-        assert_eq!(600, res[3].seconds_per_point());
-        assert_eq!(3600, res[4].seconds_per_point());
+        // Python: struct.pack('>LLL', 28, 10, 8640).hex()
+        let bytes = vec![
+            0x00, 0x00, 0x00, 0x1c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x21, 0xc0
+
+        ];
+
+        let res = parse_archive_infos(&bytes, &metadata).unwrap().1;
+        assert_eq!(vec![expected], res);
     }
 
     #[test]
     fn test_parse_data() {
-        // Get the data for the first two archives, stopping at the third
-        let bytes = &include_bytes!("../../tests/upper_01.wsp")[76..224716];
-        let info1 = ArchiveInfo::new(
-            76,
-            10,
-            8640
-        );
-        let info2 = ArchiveInfo::new(
-            103756,
-            60,
-            10080
-        );
+        let point1 = Point::new(1511396041, 42.0);
+        let point2 = Point::new(1511396051, 42.0);
+        let archive = Archive::new(vec![point1, point2]);
+        let expected = Data::new(vec![archive]);
 
-        let res = parse_data(bytes, &vec![info1, info2]).unwrap().1;
-        assert_eq!(8640, res.archives()[0].points().len());
-        assert_eq!(10080, res.archives()[1].points().len());
+        let info = ArchiveInfo::new(28, 10, 2);
+
+        // Python:
+        // struct.pack('>Ld', 1511396041, 42.0).hex()
+        // struct.pack('>Ld', 1511396051, 42.0).hex()
+        let bytes = vec![
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+            0x5a, 0x16, 0x12, 0xd3,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        let res = parse_data(&bytes, &vec![info]).unwrap().1;
+        assert_eq!(expected, res);
     }
 
     #[test]
     fn test_parse_metadata() {
-        let bytes = &include_bytes!("../../tests/count_01.wsp")[0..16];
-        let res = parse_metadata(bytes).unwrap().1;
+        let expected = Metadata::new(AggregationType::Sum, 86400, 0.5, 1);
 
-        assert_eq!(AggregationType::Sum, res.aggregation());
-        assert_eq!(31536000, res.max_retention());
-        assert_eq!(0.5, res.x_files_factor());
-        assert_eq!(5, res.archive_count());
+        // Python: struct.pack('>LLfL', 2, 86400, 0.5, 1).hex()
+        let bytes = vec![
+            0x00, 0x00, 0x00, 0x02,
+            0x00, 0x01, 0x51, 0x80,
+            0x3f, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01
+        ];
+
+        let res = parse_metadata(&bytes).unwrap().1;
+        assert_eq!(expected, res);
     }
 
     #[test]
     fn test_parse_point() {
-        // first point with a value in the db, first point in second archive
-        let bytes = &include_bytes!("../../tests/mean_01.wsp")[103756..103768];
-        let res = parse_point(bytes).unwrap().1;
+        let expected = Point::new(1511396041, 42.0);
 
-        assert_eq!(1501988400, res.timestamp());
-        assert_eq!(100.0, res.value());
+        // Python: struct.pack('>Ld', 1511396041, 42.0).hex()
+        let bytes = vec![
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let res = parse_point(&bytes).unwrap().1;
+        assert_eq!(expected, res);
     }
 
     #[test]
-    fn test_parse_archive() {
-        // second archive
-        let bytes = &include_bytes!("../../tests/upper_01.wsp")[103756..224716];
-        let info = ArchiveInfo::new(
-            103756,
-            60,
-            10080
-        );
+    fn test_whisper_parse_archive() {
+        let point1 = Point::new(1511396041, 42.0);
+        let point2 = Point::new(1511396051, 42.0);
+        let expected = Archive::new(vec![point1, point2]);
 
-        let res = whisper_parse_archive(bytes, &info).unwrap().1;
-        assert_eq!(10080, res.points().len());
+        let info = ArchiveInfo::new(28, 10, 2);
+
+        // Python:
+        // struct.pack('>Ld', 1511396041, 42.0).hex()
+        // struct.pack('>Ld', 1511396051, 42.0).hex()
+        let bytes = vec![
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+            0x5a, 0x16, 0x12, 0xd3,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ];
+
+        let res = whisper_parse_archive(&bytes, &info).unwrap().1;
+        assert_eq!(expected, res);
     }
 
     #[test]
     fn test_whisper_parse_header() {
-        let bytes = include_bytes!("../../tests/mean_01.wsp");
-        let res = whisper_parse_header(bytes);
-        let header = res.unwrap().1;
-        let meta = header.metadata();
-        let info = header.archive_info();
+        let metadata = Metadata::new(AggregationType::Min, 86400, 0.5, 1);
+        let info = ArchiveInfo::new(28, 10, 8640);
+        let expected = Header::new(metadata, vec![info]);
 
-        assert_eq!(AggregationType::Average, meta.aggregation());
-        assert_eq!(SECONDS_PER_YEAR, meta.max_retention());
-        assert_eq!(5, meta.archive_count());
+        // Python:
+        // struct.pack('>LLfL', 5, 86400, 0.5, 1).hex()
+        // struct.pack('>LLL', 28, 10, 8640).hex()
+        let bytes = vec![
+            0x00, 0x00, 0x00, 0x05,
+            0x00, 0x01, 0x51, 0x80,
+            0x3f, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
 
-        assert_eq!(10, info[0].seconds_per_point());
-        assert_eq!(60, info[1].seconds_per_point());
-        assert_eq!(300, info[2].seconds_per_point());
-        assert_eq!(600, info[3].seconds_per_point());
-        assert_eq!(3600, info[4].seconds_per_point());
+            0x00, 0x00, 0x00, 0x1c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x21, 0xc0
+        ];
 
-        assert_eq!(8640, info[0].num_points());
-        assert_eq!(10_080, info[1].num_points());
-        assert_eq!(8640, info[2].num_points());
-        assert_eq!(25_920, info[3].num_points());
-        assert_eq!(8760, info[4].num_points());
+        let res = whisper_parse_header(&bytes).unwrap().1;
+        assert_eq!(expected, res);
     }
 
     #[test]
     fn test_whisper_parse_file() {
-        let bytes = include_bytes!("../../tests/mean_01.wsp");
-        let res = whisper_parse_file(bytes);
-        let file = res.unwrap().1;
-        let header = file.header();
-        let data = file.data();
+        let metadata = Metadata::new(
+            AggregationType::Min,
+            86400,
+            0.5,
+            1
+        );
+        let info = ArchiveInfo::new(
+            28,
+            10,
+            2
+        );
+        let header = Header::new(metadata, vec![info]);
+        let point1 = Point::new(1511396041, 42.0);
+        let point2 = Point::new(1511396051, 42.0);
+        let archive = Archive::new(vec![point1, point2]);
+        let data = Data::new(vec![archive]);
+        let expected = WhisperFile::new(header, data);
 
-        let meta = header.metadata();
-        let info = header.archive_info();
-        let archives = data.archives();
+        // Python:
+        // struct.pack('>LLfL', 5, 86400, 0.5, 1).hex()
+        // struct.pack('>LLL', 28, 10, 2).hex()
+        // struct.pack('>Ld', 1511396041, 42.0).hex()
+        // struct.pack('>Ld', 1511396051, 42.0).hex()
+        let bytes = vec![
+            0x00, 0x00, 0x00, 0x05,
+            0x00, 0x01, 0x51, 0x80,
+            0x3f, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
 
-        assert_eq!(AggregationType::Average, meta.aggregation());
-        assert_eq!(SECONDS_PER_YEAR, meta.max_retention());
-        assert_eq!(5, meta.archive_count());
+            0x00, 0x00, 0x00, 0x1c,
+            0x00, 0x00, 0x00, 0x0a,
+            0x00, 0x00, 0x00, 0x02,
 
-        assert_eq!(8640, info[0].num_points());
-        assert_eq!(8640, archives[0].points().len());
+            0x5a, 0x16, 0x12, 0xc9,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 
-        assert_eq!(10_080, info[1].num_points());
-        assert_eq!(10_080, archives[1].points().len());
+            0x5a, 0x16, 0x12, 0xd3,
+            0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
 
-        assert_eq!(8640, info[2].num_points());
-        assert_eq!(8640, archives[2].points().len());
-
-        assert_eq!(25_920, info[3].num_points());
-        assert_eq!(25_920, archives[3].points().len());
-
-        assert_eq!(8760, info[4].num_points());
-        assert_eq!(8760, archives[4].points().len());
+        let res = whisper_parse_file(&bytes);
+        assert_eq!(expected, res.unwrap().1);
     }
 }
