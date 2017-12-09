@@ -96,21 +96,21 @@ impl FetchRequest {
         // Well, this is just nonsense
         if self.until <= self.from {
             return Err(WhisperError::from(
-                (ErrorKind::InvalidInput, "invalid time range"),
+                (ErrorKind::InvalidTimeRange, "invalid time range"),
             ));
         }
 
         // start time is in the future, invalid
         if self.from > self.now {
             return Err(WhisperError::from(
-                (ErrorKind::InvalidInput, "invalid from time"),
+                (ErrorKind::InvalidTimeStart, "invalid from time"),
             ));
         }
 
         // end time is before the oldest value we have, invalid
         if self.until < oldest {
             return Err(WhisperError::from(
-                (ErrorKind::InvalidInput, "invalid until time"),
+                (ErrorKind::InvalidTimeEnd, "invalid until time"),
             ));
         }
 
@@ -213,7 +213,7 @@ impl<'a> WhisperReader<'a> {
         }
 
         Err(WhisperError::from(
-            (ErrorKind::InvalidInput, "no archive available"),
+            (ErrorKind::NoArchiveAvailable, "no archive available"),
         ))
     }
 
@@ -227,13 +227,13 @@ impl<'a> WhisperReader<'a> {
         // avoids crashing the calling code.
         if offset > self.bytes.len() {
             return Err(WhisperError::from(
-                (ErrorKind::ParseError, "offset exceeds data size"),
+                (ErrorKind::CorruptDatabase, "offset exceeds data size"),
             ));
         }
 
         if offset + archive.archive_size() > self.bytes.len() {
             return Err(WhisperError::from(
-                (ErrorKind::ParseError, "archive exceeds data size"),
+                (ErrorKind::CorruptDatabase, "archive exceeds data size"),
             ));
         }
 
@@ -349,7 +349,7 @@ mod tests {
         let res = reader.read(&req);
 
         assert!(res.is_err());
-        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+        assert_eq!(ErrorKind::NoArchiveAvailable, res.unwrap_err().kind());
     }
 
     #[test]
@@ -376,7 +376,7 @@ mod tests {
         let res = reader.read(&req);
 
         assert!(res.is_err());
-        assert_eq!(ErrorKind::ParseError, res.unwrap_err().kind());
+        assert_eq!(ErrorKind::CorruptDatabase, res.unwrap_err().kind());
     }
 
     #[test]
@@ -407,7 +407,7 @@ mod tests {
         let res = reader.read(&req);
 
         assert!(res.is_err());
-        assert_eq!(ErrorKind::ParseError, res.unwrap_err().kind());
+        assert_eq!(ErrorKind::CorruptDatabase, res.unwrap_err().kind());
     }
 
     #[test]
