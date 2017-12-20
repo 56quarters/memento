@@ -19,6 +19,7 @@ use memmap::{Mmap, Protection};
 
 use memento_core::errors::WhisperResult;
 
+
 struct FileLocker<'a> {
     enabled: bool,
     file: &'a File,
@@ -69,9 +70,7 @@ pub struct MappedFileStream {
 
 impl Default for MappedFileStream {
     fn default() -> Self {
-        MappedFileStream {
-            locking: true,
-        }
+        MappedFileStream { locking: true }
     }
 }
 
@@ -121,6 +120,6 @@ mod tests {
                 assert_eq!(expected_ref, bytes);
                 Ok(0)
             })
-        .unwrap();
+            .unwrap();
     }
 }

@@ -8,10 +8,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate memento_core;
 extern crate chrono;
-extern crate memmap;
 extern crate fs2;
+extern crate memento_core;
+extern crate memmap;
 
 mod read;
 mod write;

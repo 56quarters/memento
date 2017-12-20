@@ -12,12 +12,12 @@
 
 use std::path::Path;
 
-use chrono::{Duration, DateTime, Utc, TimeZone};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 
 use io::MappedFileStream;
-use memento_core::parser::{whisper_parse_header, whisper_parse_archive};
-use memento_core::types::{Header, Point, Archive, ArchiveInfo};
-use memento_core::errors::{WhisperResult, WhisperError, ErrorKind};
+use memento_core::parser::{whisper_parse_archive, whisper_parse_header};
+use memento_core::types::{Archive, ArchiveInfo, Header, Point};
+use memento_core::errors::{ErrorKind, WhisperError, WhisperResult};
 
 
 ///
@@ -39,14 +39,9 @@ impl FetchRequest {
     ///
     ///
     ///
-    pub fn new<T>(
-        from: DateTime<T>,
-        until: DateTime<T>,
-        now: DateTime<T>
-    ) -> FetchRequest
+    pub fn new<T>(from: DateTime<T>, until: DateTime<T>, now: DateTime<T>) -> FetchRequest
     where
         T: TimeZone,
-
     {
         FetchRequest {
             from: from.with_timezone(&Utc),
@@ -95,23 +90,26 @@ impl FetchRequest {
 
         // Well, this is just nonsense
         if self.until <= self.from {
-            return Err(WhisperError::from(
-                (ErrorKind::InvalidTimeRange, "invalid time range"),
-            ));
+            return Err(WhisperError::from((
+                ErrorKind::InvalidTimeRange,
+                "invalid time range",
+            )));
         }
 
         // start time is in the future, invalid
         if self.from > self.now {
-            return Err(WhisperError::from(
-                (ErrorKind::InvalidTimeStart, "invalid from time"),
-            ));
+            return Err(WhisperError::from((
+                ErrorKind::InvalidTimeStart,
+                "invalid from time",
+            )));
         }
 
         // end time is before the oldest value we have, invalid
         if self.until < oldest {
-            return Err(WhisperError::from(
-                (ErrorKind::InvalidTimeEnd, "invalid until time"),
-            ));
+            return Err(WhisperError::from((
+                ErrorKind::InvalidTimeEnd,
+                "invalid until time",
+            )));
         }
 
         // start time is before the oldest value we have, adjust
@@ -212,9 +210,10 @@ impl<'a> WhisperReader<'a> {
             }
         }
 
-        Err(WhisperError::from(
-            (ErrorKind::NoArchiveAvailable, "no archive available"),
-        ))
+        Err(WhisperError::from((
+            ErrorKind::NoArchiveAvailable,
+            "no archive available",
+        )))
     }
 
     ///
@@ -226,15 +225,17 @@ impl<'a> WhisperReader<'a> {
         // a corrupted file gracefully here instead of just panicking. This
         // avoids crashing the calling code.
         if offset > self.bytes.len() {
-            return Err(WhisperError::from(
-                (ErrorKind::CorruptDatabase, "offset exceeds data size"),
-            ));
+            return Err(WhisperError::from((
+                ErrorKind::CorruptDatabase,
+                "offset exceeds data size",
+            )));
         }
 
         if offset + archive.archive_size() > self.bytes.len() {
-            return Err(WhisperError::from(
-                (ErrorKind::CorruptDatabase, "archive exceeds data size"),
-            ));
+            return Err(WhisperError::from((
+                ErrorKind::CorruptDatabase,
+                "archive exceeds data size",
+            )));
         }
 
         Ok(&self.bytes[offset..offset + archive.archive_size()])
@@ -247,12 +248,8 @@ impl<'a> WhisperReader<'a> {
         archive
             .points()
             .iter()
-            .filter(|p| {
-                Utc.timestamp(i64::from(p.timestamp()), 0) >= request.from
-            })
-            .filter(|p| {
-                Utc.timestamp(i64::from(p.timestamp()), 0) <= request.until
-            })
+            .filter(|p| Utc.timestamp(i64::from(p.timestamp()), 0) >= request.from)
+            .filter(|p| Utc.timestamp(i64::from(p.timestamp()), 0) <= request.until)
             .cloned()
             .collect()
     }
@@ -272,8 +269,7 @@ impl<'a> WhisperReader<'a> {
         // at based on the archive that can actually be used to satisfy
         // the requested ranges.
         let archive_bytes = self.slice_for_archive(archive_info)?;
-        let archive = whisper_parse_archive(archive_bytes, archive_info)
-            .to_full_result()?;
+        let archive = whisper_parse_archive(archive_bytes, archive_info).to_full_result()?;
         Ok(Self::points_for_request(&archive, &req))
     }
 }
@@ -281,12 +277,11 @@ impl<'a> WhisperReader<'a> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Utc, DateTime};
+    use chrono::{DateTime, Utc};
 
     use memento_core::errors::ErrorKind;
-    use memento_core::encoder::{whisper_encode_header, whisper_encode_archive};
-    use memento_core::types::{Header, Metadata, ArchiveInfo, AggregationType,
-                                   Archive, Point};
+    use memento_core::encoder::{whisper_encode_archive, whisper_encode_header};
+    use memento_core::types::{AggregationType, Archive, ArchiveInfo, Header, Metadata, Point};
 
     use super::{FetchRequest, WhisperReader};
 
@@ -294,17 +289,17 @@ mod tests {
         let metadata = Metadata::new(
             AggregationType::Average,
             3600 * 24 * 30, // max retention
-            0.3, // x files factor
-            2, // two archives
+            0.3,            // x files factor
+            2,              // two archives
         );
         let info1 = ArchiveInfo::new(
             (Metadata::storage() + ArchiveInfo::storage() * 2) as u32, // offset
-            60, // seconds per point
+            60,                                                        // seconds per point
             60 * 24 * 1, // number of 1 minute points = 60 per hour * 24 hours * 1 days
         );
         let info2 = ArchiveInfo::new(
             info1.offset() + info1.archive_size() as u32, // offset
-            300, // seconds per point
+            300,                                          // seconds per point
             12 * 24 * 7, // number of 5 minute points = 12 per hour * 24 hours * 7 days
         );
 
@@ -509,7 +504,7 @@ mod tests {
         assert_eq!(
             &vec![
                 Point::new(until.timestamp() as u32 - 60, 7.0),
-                Point::new(until.timestamp() as u32, 7.0)
+                Point::new(until.timestamp() as u32, 7.0),
             ],
             &points
         );
@@ -550,29 +545,24 @@ mod tests {
         assert_eq!(
             &vec![
                 Point::new(until.timestamp() as u32 - 300, 7.0),
-                Point::new(until.timestamp() as u32, 7.0)
+                Point::new(until.timestamp() as u32, 7.0),
             ],
             &points
         );
     }
 
     #[test]
-    fn test_fetch_request_normalize_nonsense_request() {
-    }
+    fn test_fetch_request_normalize_nonsense_request() {}
 
     #[test]
-    fn test_fetch_request_normalize_future_start_time() {
-    }
+    fn test_fetch_request_normalize_future_start_time() {}
 
     #[test]
-    fn test_fetch_request_normalize_end_exceeds_retention() {
-    }
+    fn test_fetch_request_normalize_end_exceeds_retention() {}
 
     #[test]
-    fn test_fetch_request_normalize_from_older_than_oldest() {
-    }
+    fn test_fetch_request_normalize_from_older_than_oldest() {}
 
     #[test]
-    fn test_fetch_request_normalize_from_not_older_than_oldest() {
-    }
+    fn test_fetch_request_normalize_from_not_older_than_oldest() {}
 }
