@@ -71,9 +71,9 @@ impl Header {
     /// Get the amount of space required for the entire file in bytes
     #[inline]
     pub fn file_size(&self) -> usize {
-        self.archive_info().iter().fold(self.size(), |acc, info| {
-            acc + info.archive_size()
-        })
+        self.archive_info()
+            .iter()
+            .fold(self.size(), |acc, info| acc + info.archive_size())
     }
 }
 
@@ -269,7 +269,7 @@ impl Point {
 
 #[cfg(test)]
 mod tests {
-    use super::{ArchiveInfo, AggregationType, Metadata, Header};
+    use super::{AggregationType, ArchiveInfo, Header, Metadata};
 
     #[test]
     fn test_header_size() {

@@ -8,9 +8,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+extern crate byteorder;
 #[macro_use]
 extern crate nom;
-extern crate byteorder;
 
 pub mod encoder;
 pub mod errors;

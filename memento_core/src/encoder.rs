@@ -12,9 +12,9 @@
 
 use std::io;
 
-use byteorder::{WriteBytesExt, NetworkEndian};
+use byteorder::{NetworkEndian, WriteBytesExt};
 
-use types::{WhisperFile, Header, Metadata, ArchiveInfo, Archive, Point, Data};
+use types::{Archive, ArchiveInfo, Data, Header, Metadata, Point, WhisperFile};
 use errors::WhisperResult;
 
 
@@ -96,22 +96,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Metadata, ArchiveInfo, Point, Header, Archive, Data,
-                WhisperFile};
+    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, WhisperFile};
 
-    use super::{encode_metadata, encode_archive_infos, encode_point, encode_data,
-                whisper_encode_archive, whisper_encode_header, whisper_encode_file};
+    use super::{encode_archive_infos, encode_data, encode_metadata, encode_point,
+                whisper_encode_archive, whisper_encode_file, whisper_encode_header};
 
     #[test]
     fn test_encode_metadata() {
-        let metadata = Metadata::new(
-            AggregationType::Max,
-            31536000,
-            0.5,
-            5
-        );
+        let metadata = Metadata::new(AggregationType::Max, 31536000, 0.5, 5);
 
         // Python: struct.pack('>LLfL', 4, 31536000, 0.5, 5).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x00, 0x00, 0x00, 0x04,
             0x01, 0xe1, 0x33, 0x80,
@@ -130,6 +125,7 @@ mod tests {
         let info = ArchiveInfo::new(76, 10, 8640);
 
         // Python: struct.pack('>LLL', 76, 10, 8640).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x00, 0x00, 0x00, 0x4c,
             0x00, 0x00, 0x00, 0x0a,
@@ -147,6 +143,7 @@ mod tests {
         let point = Point::new(1511396041, 42.0);
 
         // Python: struct.pack('>Ld', 1511396041, 42.0).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x5a, 0x16, 0x12, 0xc9,
             0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -168,6 +165,7 @@ mod tests {
         // Python:
         // struct.pack('>Ld', 1511396041, 42.0).hex()
         // struct.pack('>Ld', 1511396051, 42.0).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x5a, 0x16, 0x12, 0xc9,
             0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -191,6 +189,7 @@ mod tests {
         // Python:
         // struct.pack('>Ld', 1511396041, 42.0).hex()
         // struct.pack('>Ld', 1511396051, 42.0).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x5a, 0x16, 0x12, 0xc9,
             0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -207,22 +206,14 @@ mod tests {
 
     #[test]
     fn test_whisper_encode_header() {
-        let metadata = Metadata::new(
-            AggregationType::Min,
-            86400,
-            0.5,
-            1
-        );
-        let info = ArchiveInfo::new(
-            28,
-            10,
-            8640
-        );
+        let metadata = Metadata::new(AggregationType::Min, 86400, 0.5, 1);
+        let info = ArchiveInfo::new(28, 10, 8640);
         let header = Header::new(metadata, vec![info]);
 
         // Python:
         // struct.pack('>LLfL', 5, 86400, 0.5, 1).hex()
         // struct.pack('>LLL', 28, 10, 8640).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x00, 0x00, 0x00, 0x05,
             0x00, 0x01, 0x51, 0x80,
@@ -242,17 +233,8 @@ mod tests {
 
     #[test]
     fn test_whisper_encode_file() {
-        let metadata = Metadata::new(
-            AggregationType::Min,
-            86400,
-            0.5,
-            1
-        );
-        let info = ArchiveInfo::new(
-            28,
-            10,
-            8640
-        );
+        let metadata = Metadata::new(AggregationType::Min, 86400, 0.5, 1);
+        let info = ArchiveInfo::new(28, 10, 8640);
         let header = Header::new(metadata, vec![info]);
         let point1 = Point::new(1511396041, 42.0);
         let point2 = Point::new(1511396051, 42.0);
@@ -265,6 +247,7 @@ mod tests {
         // struct.pack('>LLL', 28, 10, 8640).hex()
         // struct.pack('>Ld', 1511396041, 42.0).hex()
         // struct.pack('>Ld', 1511396051, 42.0).hex()
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let expected = vec![
             0x00, 0x00, 0x00, 0x05,
             0x00, 0x01, 0x51, 0x80,
