@@ -3,7 +3,10 @@ name = "memento-cabi"
 version = "0.1.0"
 authors = ["TSH Labs"]
 
+[workspace]
+
 [dependencies]
+memento = { path = ".." }
 
 [lib]
 crate-type = ["dylib"]

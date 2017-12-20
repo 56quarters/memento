@@ -3,9 +3,10 @@ name = "memento"
 version = "0.1.0"
 authors = ["TSH Labs"]
 
+[workspace]
+
 [dependencies]
 chrono = "0.4.0"
 fs2 = "0.4.2"
 memmap = "0.5.2"
 memento-core = { path = "core" }
-memento-cabi = { path = "cabi" }
