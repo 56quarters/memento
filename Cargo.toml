@@ -7,4 +7,5 @@ authors = ["TSH Labs"]
 chrono = "0.4.0"
 fs2 = "0.4.2"
 memmap = "0.5.2"
-memento_core = { path = "memento_core" }
+memento-core = { path = "core" }
+memento-cabi = { path = "cabi" }

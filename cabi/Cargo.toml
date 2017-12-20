@@ -1,8 +1,9 @@
 [package]
-name = "memento_core"
+name = "memento-cabi"
 version = "0.1.0"
 authors = ["TSH Labs"]
 
 [dependencies]
-byteorder = "1.1.0"
-nom = "3.2.0"
+
+[lib]
+crate-type = ["dylib"]
