@@ -1,13 +1,12 @@
 extern crate memento;
 
+/*
 use memento::{FetchRequest, MappedFileStream, WhisperFileReader};
 use memento::errors::{ErrorKind, WhisperError, WhisperResult};
 use memento::types::{Header, Point, WhisperFile};
+*/
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+#[no_mangle]
+pub extern "C" fn whisper_fetch_path(path: &str, from: u64, until: u64) -> u64 {
+    0
 }

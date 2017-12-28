@@ -8,5 +8,8 @@ authors = ["TSH Labs"]
 [dependencies]
 memento = { path = ".." }
 
+[build-dependencies]
+cbindgen = "0.3.3"
+
 [lib]
 crate-type = ["dylib"]
