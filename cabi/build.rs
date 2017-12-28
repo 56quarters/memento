@@ -9,7 +9,8 @@ fn main() {
         .with_trailer("/* end memento header */")
         .with_include_guard("MEMENTO_H_INCLUDED")
         .with_language(cbindgen::Language::C)
-        .with_crate(crate_dir)
+        .with_crate_and_name(crate_dir, "memento-cabi")
+        .with_parse_deps(true)
         .generate()
         .expect("Failed to generate bindings")
         .write_to_file("include/memento.h");
