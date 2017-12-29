@@ -17,7 +17,7 @@ use std::path::Path;
 use fs2::FileExt;
 use memmap::{Mmap, Protection};
 
-use memento_core::errors::WhisperResult;
+use memento_core::errors::MementoResult;
 
 
 struct FileLocker<'a> {
@@ -85,10 +85,10 @@ impl MappedFileStream {
         self
     }
 
-    pub fn run_immutable<P, F, T>(&self, path: P, consumer: F) -> WhisperResult<T>
+    pub fn run_immutable<P, F, T>(&self, path: P, consumer: F) -> MementoResult<T>
     where
         P: AsRef<Path>,
-        F: Fn(&[u8]) -> WhisperResult<T>,
+        F: Fn(&[u8]) -> MementoResult<T>,
     {
         let file = File::open(path)?;
         // Not used, we just need it to unlock the file in its destructor

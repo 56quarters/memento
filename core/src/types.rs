@@ -11,15 +11,15 @@
 //! Structures that define the Whisper file format on disk
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct WhisperFile {
+pub struct MementoDatabase {
     header: Header,
     data: Data,
 }
 
 
-impl WhisperFile {
-    pub fn new(header: Header, data: Data) -> WhisperFile {
-        WhisperFile {
+impl MementoDatabase {
+    pub fn new(header: Header, data: Data) -> MementoDatabase {
+        MementoDatabase {
             header: header,
             data: data,
         }

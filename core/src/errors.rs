@@ -17,7 +17,7 @@ use std::fmt;
 use nom;
 
 
-pub type WhisperResult<T> = Result<T, WhisperError>;
+pub type MementoResult<T> = Result<T, MementoError>;
 
 
 #[derive(Debug)]
@@ -27,12 +27,6 @@ enum ErrorRepr {
     WithDescription(ErrorKind, &'static str),
 }
 
-
-// TODO: Add some more variants to this:
-// * InvalidDateRange
-// * InvalidDateStart
-// * InvalidDateEnd
-// * CorruptDatabase
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ErrorKind {
@@ -47,12 +41,12 @@ pub enum ErrorKind {
 
 
 #[derive(Debug)]
-pub struct WhisperError {
+pub struct MementoError {
     repr: ErrorRepr,
 }
 
 
-impl WhisperError {
+impl MementoError {
     pub fn kind(&self) -> ErrorKind {
         match self.repr {
             ErrorRepr::IoError(_) => ErrorKind::IoError,
@@ -63,7 +57,7 @@ impl WhisperError {
 }
 
 
-impl fmt::Display for WhisperError {
+impl fmt::Display for MementoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.fmt(f),
@@ -77,7 +71,7 @@ impl fmt::Display for WhisperError {
 }
 
 
-impl error::Error for WhisperError {
+impl error::Error for MementoError {
     fn description(&self) -> &str {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.description(),
@@ -102,27 +96,27 @@ impl error::Error for WhisperError {
 }
 
 
-impl From<io::Error> for WhisperError {
-    fn from(err: io::Error) -> WhisperError {
-        WhisperError {
+impl From<io::Error> for MementoError {
+    fn from(err: io::Error) -> MementoError {
+        MementoError {
             repr: ErrorRepr::IoError(err),
         }
     }
 }
 
 
-impl From<nom::IError> for WhisperError {
-    fn from(err: nom::IError) -> WhisperError {
-        WhisperError {
+impl From<nom::IError> for MementoError {
+    fn from(err: nom::IError) -> MementoError {
+        MementoError {
             repr: ErrorRepr::ParseError(err),
         }
     }
 }
 
 
-impl From<(ErrorKind, &'static str)> for WhisperError {
-    fn from((kind, msg): (ErrorKind, &'static str)) -> WhisperError {
-        WhisperError {
+impl From<(ErrorKind, &'static str)> for MementoError {
+    fn from((kind, msg): (ErrorKind, &'static str)) -> MementoError {
+        MementoError {
             repr: ErrorRepr::WithDescription(kind, msg),
         }
     }

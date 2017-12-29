@@ -12,7 +12,7 @@
 
 use nom::{IResult, be_f32, be_f64, be_u32};
 
-use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, WhisperFile};
+use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, MementoDatabase};
 
 
 named!(parse_aggregation_type<&[u8], AggregationType>,
@@ -60,7 +60,7 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
     let mut to_parse = input;
 
     for info in infos {
-        let (remaining, archive) = try_parse!(to_parse, apply!(whisper_parse_archive, info));
+        let (remaining, archive) = try_parse!(to_parse, apply!(memento_parse_archive, info));
         to_parse = remaining;
         archives.push(archive);
     }
@@ -94,7 +94,7 @@ named!(parse_point<&[u8], Point>,
 );
 
 
-named!(pub whisper_parse_header<&[u8], Header>,
+named!(pub memento_parse_header<&[u8], Header>,
        do_parse!(
            metadata: parse_metadata                         >>
            archives: apply!(parse_archive_infos, &metadata) >>
@@ -103,7 +103,7 @@ named!(pub whisper_parse_header<&[u8], Header>,
 );
 
 
-pub fn whisper_parse_archive<'a, 'b>(
+pub fn memento_parse_archive<'a, 'b>(
     input: &'a [u8],
     info: &'b ArchiveInfo,
 ) -> IResult<&'a [u8], Archive> {
@@ -113,22 +113,22 @@ pub fn whisper_parse_archive<'a, 'b>(
 }
 
 
-named!(pub whisper_parse_file<&[u8], WhisperFile>,
+named!(pub memento_parse_database<&[u8], MementoDatabase>,
        do_parse!(
-           header: whisper_parse_header                      >>
+           header: memento_parse_header                      >>
            data:   apply!(parse_data, header.archive_info()) >>
-           (WhisperFile::new(header, data))
+           (MementoDatabase::new(header, data))
        )
 );
 
 
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, WhisperFile};
+    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, MementoDatabase};
 
     use super::{parse_aggregation_type, parse_archive_info, parse_archive_infos, parse_data,
-                parse_metadata, parse_point, whisper_parse_archive, whisper_parse_file,
-                whisper_parse_header};
+                parse_metadata, parse_point, memento_parse_archive, memento_parse_database,
+                memento_parse_header};
 
     #[test]
     fn test_parse_aggregation_type() {
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_whisper_parse_archive() {
+    fn test_memento_parse_archive() {
         let point1 = Point::new(1511396041, 42.0);
         let point2 = Point::new(1511396051, 42.0);
         let expected = Archive::new(vec![point1, point2]);
@@ -249,12 +249,12 @@ mod tests {
             0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ];
 
-        let res = whisper_parse_archive(&bytes, &info).unwrap().1;
+        let res = memento_parse_archive(&bytes, &info).unwrap().1;
         assert_eq!(expected, res);
     }
 
     #[test]
-    fn test_whisper_parse_header() {
+    fn test_memento_parse_header() {
         let metadata = Metadata::new(AggregationType::Min, 86400, 0.5, 1);
         let info = ArchiveInfo::new(28, 10, 8640);
         let expected = Header::new(metadata, vec![info]);
@@ -274,12 +274,12 @@ mod tests {
             0x00, 0x00, 0x21, 0xc0
         ];
 
-        let res = whisper_parse_header(&bytes).unwrap().1;
+        let res = memento_parse_header(&bytes).unwrap().1;
         assert_eq!(expected, res);
     }
 
     #[test]
-    fn test_whisper_parse_file() {
+    fn test_memento_parse_database() {
         let metadata = Metadata::new(AggregationType::Min, 86400, 0.5, 1);
         let info = ArchiveInfo::new(28, 10, 2);
         let header = Header::new(metadata, vec![info]);
@@ -287,7 +287,7 @@ mod tests {
         let point2 = Point::new(1511396051, 42.0);
         let archive = Archive::new(vec![point1, point2]);
         let data = Data::new(vec![archive]);
-        let expected = WhisperFile::new(header, data);
+        let expected = MementoDatabase::new(header, data);
 
         // Python:
         // struct.pack('>LLfL', 5, 86400, 0.5, 1).hex()
@@ -312,7 +312,7 @@ mod tests {
             0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        let res = whisper_parse_file(&bytes);
+        let res = memento_parse_database(&bytes);
         assert_eq!(expected, res.unwrap().1);
     }
 }

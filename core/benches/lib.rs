@@ -2,45 +2,45 @@
 extern crate test;
 extern crate memento_core;
 
-use memento_core::encoder::{whisper_encode_header, whisper_encode_file};
-use memento_core::parser::{whisper_parse_header, whisper_parse_file};
+use memento_core::encoder::{memento_encode_header, memento_encode_database};
+use memento_core::parser::{memento_parse_header, memento_parse_database};
 
 
 #[bench]
-fn bench_whisper_parse_header(b: &mut test::Bencher) {
+fn bench_memento_parse_header(b: &mut test::Bencher) {
     let bytes = include_bytes!("../../tests/mean_01.wsp");
-    b.iter(|| { whisper_parse_header(bytes).unwrap(); });
+    b.iter(|| { memento_parse_header(bytes).unwrap(); });
 }
 
 
 #[bench]
-fn bench_whisper_parse_file(b: &mut test::Bencher) {
+fn bench_memento_parse_database(b: &mut test::Bencher) {
     let bytes = include_bytes!("../../tests/mean_01.wsp");
-    b.iter(|| { whisper_parse_file(bytes).unwrap(); });
+    b.iter(|| { memento_parse_database(bytes).unwrap(); });
 }
 
 
 #[bench]
-fn bench_whisper_encode_header(b: &mut test::Bencher) {
+fn bench_memento_encode_header(b: &mut test::Bencher) {
     let bytes = &include_bytes!("../../tests/mean_01.wsp")[0..76];
-    let header = whisper_parse_header(bytes).unwrap().1;
+    let header = memento_parse_header(bytes).unwrap().1;
     let mut buf = Vec::with_capacity(bytes.len());
 
     b.iter(|| {
-        whisper_encode_header(&mut buf, &header).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
         buf.clear();
     });
 }
 
 
 #[bench]
-fn bench_whisper_encode_file(b: &mut test::Bencher) {
+fn bench_memento_encode_database(b: &mut test::Bencher) {
     let bytes = &include_bytes!("../../tests/mean_01.wsp")[..];
-    let file = whisper_parse_file(bytes).unwrap().1;
+    let file = memento_parse_database(bytes).unwrap().1;
     let mut buf = Vec::with_capacity(bytes.len());
 
     b.iter(|| {
-        whisper_encode_file(&mut buf, &file).unwrap();
+        memento_encode_database(&mut buf, &file).unwrap();
         buf.clear();
     });
 }

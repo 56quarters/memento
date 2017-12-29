@@ -15,9 +15,9 @@ use std::path::Path;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 
 use io::MappedFileStream;
-use memento_core::parser::{whisper_parse_archive, whisper_parse_header};
+use memento_core::parser::{memento_parse_archive, memento_parse_header};
 use memento_core::types::{Archive, ArchiveInfo, Header, Point};
-use memento_core::errors::{ErrorKind, WhisperError, WhisperResult};
+use memento_core::errors::{ErrorKind, MementoError, MementoResult};
 
 
 ///
@@ -84,13 +84,13 @@ impl FetchRequest {
     ///
     ///
     ///
-    fn normalize(&self, header: &Header) -> WhisperResult<Self> {
+    fn normalize(&self, header: &Header) -> MementoResult<Self> {
         let metadata = header.metadata();
         let oldest = self.now - Duration::seconds(i64::from(metadata.max_retention()));
 
         // Well, this is just nonsense
         if self.until <= self.from {
-            return Err(WhisperError::from((
+            return Err(MementoError::from((
                 ErrorKind::InvalidTimeRange,
                 "invalid time range",
             )));
@@ -98,7 +98,7 @@ impl FetchRequest {
 
         // start time is in the future, invalid
         if self.from > self.now {
-            return Err(WhisperError::from((
+            return Err(MementoError::from((
                 ErrorKind::InvalidTimeStart,
                 "invalid from time",
             )));
@@ -106,7 +106,7 @@ impl FetchRequest {
 
         // end time is before the oldest value we have, invalid
         if self.until < oldest {
-            return Err(WhisperError::from((
+            return Err(MementoError::from((
                 ErrorKind::InvalidTimeEnd,
                 "invalid until time",
             )));
@@ -148,28 +148,28 @@ impl Default for FetchRequest {
 ///
 ///
 #[derive(Debug, Clone)]
-pub struct WhisperFileReader {
+pub struct MementoFileReader {
     mapper: MappedFileStream,
 }
 
 
-impl WhisperFileReader {
+impl MementoFileReader {
     ///
     ///
     ///
-    pub fn new(mapper: MappedFileStream) -> WhisperFileReader {
-        WhisperFileReader { mapper: mapper }
+    pub fn new(mapper: MappedFileStream) -> MementoFileReader {
+        MementoFileReader { mapper: mapper }
     }
 
     ///
     ///
     ///
-    pub fn read<P>(&self, path: P, req: &FetchRequest) -> WhisperResult<Vec<Point>>
+    pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<Vec<Point>>
     where
         P: AsRef<Path>,
     {
         self.mapper.run_immutable(path, |bytes| {
-            let reader = WhisperReader::new(bytes);
+            let reader = MementoReader::new(bytes);
             reader.read(req)
         })
     }
@@ -182,15 +182,15 @@ impl WhisperFileReader {
 ///
 ///
 #[derive(Debug)]
-struct WhisperReader<'a> {
+struct MementoReader<'a> {
     bytes: &'a [u8],
 }
 
-impl<'a> WhisperReader<'a> {
+impl<'a> MementoReader<'a> {
     ///
     ///
-    fn new(bytes: &'a [u8]) -> WhisperReader<'a> {
-        WhisperReader { bytes: bytes }
+    fn new(bytes: &'a [u8]) -> MementoReader<'a> {
+        MementoReader { bytes: bytes }
     }
 
     ///
@@ -199,7 +199,7 @@ impl<'a> WhisperReader<'a> {
     fn find_archive<'b, 'c>(
         req: &'b FetchRequest,
         header: &'c Header,
-    ) -> WhisperResult<&'c ArchiveInfo> {
+    ) -> MementoResult<&'c ArchiveInfo> {
         let archives = header.archive_info();
         let required_retention = req.retention();
 
@@ -210,7 +210,7 @@ impl<'a> WhisperReader<'a> {
             }
         }
 
-        Err(WhisperError::from((
+        Err(MementoError::from((
             ErrorKind::NoArchiveAvailable,
             "no archive available",
         )))
@@ -219,20 +219,20 @@ impl<'a> WhisperReader<'a> {
     ///
     ///
     ///
-    fn slice_for_archive(&self, archive: &ArchiveInfo) -> WhisperResult<&[u8]> {
+    fn slice_for_archive(&self, archive: &ArchiveInfo) -> MementoResult<&[u8]> {
         let offset = archive.offset() as usize;
         // These two conditions should never happen but it's nice to handle
         // a corrupted file gracefully here instead of just panicking. This
         // avoids crashing the calling code.
         if offset > self.bytes.len() {
-            return Err(WhisperError::from((
+            return Err(MementoError::from((
                 ErrorKind::CorruptDatabase,
                 "offset exceeds data size",
             )));
         }
 
         if offset + archive.archive_size() > self.bytes.len() {
-            return Err(WhisperError::from((
+            return Err(MementoError::from((
                 ErrorKind::CorruptDatabase,
                 "archive exceeds data size",
             )));
@@ -257,8 +257,8 @@ impl<'a> WhisperReader<'a> {
     ///
     ///
     ///
-    fn read(&self, req: &FetchRequest) -> WhisperResult<Vec<Point>> {
-        let header = whisper_parse_header(self.bytes).to_full_result()?;
+    fn read(&self, req: &FetchRequest) -> MementoResult<Vec<Point>> {
+        let header = memento_parse_header(self.bytes).to_full_result()?;
         // validate the that requested ranges are something that we can
         // satisfy with this database and coerce them if required. For
         // example: bump up the starting range to our earliest range if
@@ -269,7 +269,7 @@ impl<'a> WhisperReader<'a> {
         // at based on the archive that can actually be used to satisfy
         // the requested ranges.
         let archive_bytes = self.slice_for_archive(archive_info)?;
-        let archive = whisper_parse_archive(archive_bytes, archive_info).to_full_result()?;
+        let archive = memento_parse_archive(archive_bytes, archive_info).to_full_result()?;
         Ok(Self::points_for_request(&archive, &req))
     }
 }
@@ -280,10 +280,10 @@ mod tests {
     use chrono::{DateTime, Utc};
 
     use memento_core::errors::ErrorKind;
-    use memento_core::encoder::{whisper_encode_archive, whisper_encode_header};
+    use memento_core::encoder::{memento_encode_archive, memento_encode_header};
     use memento_core::types::{AggregationType, Archive, ArchiveInfo, Header, Metadata, Point};
 
-    use super::{FetchRequest, WhisperReader};
+    use super::{FetchRequest, MementoReader};
 
     fn get_file_header() -> Header {
         let metadata = Metadata::new(
@@ -337,10 +337,10 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
         buf.shrink_to_fit();
 
-        let reader = WhisperReader::new(&buf);
+        let reader = MementoReader::new(&buf);
         let res = reader.read(&req);
 
         assert!(res.is_err());
@@ -361,13 +361,13 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
         buf.shrink_to_fit();
 
         // The buffer only contains the bytes for the header so the offset
         // of the first archive will violate the first check for the size
         // of the data (making sure it's greater than the offset).
-        let reader = WhisperReader::new(&buf);
+        let reader = MementoReader::new(&buf);
         let res = reader.read(&req);
 
         assert!(res.is_err());
@@ -390,15 +390,15 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
-        whisper_encode_archive(&mut buf, &archive1).unwrap();
-        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
+        memento_encode_archive(&mut buf, &archive1).unwrap();
+        memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
         // The buffer will contain and entire file but we only give the reader
         // slightly more than just the header here so that we make sure to test
         // the case where the header lies!
-        let reader = WhisperReader::new(&buf[0..80]);
+        let reader = MementoReader::new(&buf[0..80]);
         let res = reader.read(&req);
 
         assert!(res.is_err());
@@ -425,12 +425,12 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
-        whisper_encode_archive(&mut buf, &archive1).unwrap();
-        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
+        memento_encode_archive(&mut buf, &archive1).unwrap();
+        memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = WhisperReader::new(&buf);
+        let reader = MementoReader::new(&buf);
         let res = reader.read(&req);
 
         assert!(res.is_ok());
@@ -457,12 +457,12 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
-        whisper_encode_archive(&mut buf, &archive1).unwrap();
-        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
+        memento_encode_archive(&mut buf, &archive1).unwrap();
+        memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = WhisperReader::new(&buf);
+        let reader = MementoReader::new(&buf);
         let res = reader.read(&req);
 
         assert!(res.is_ok());
@@ -489,12 +489,12 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
-        whisper_encode_archive(&mut buf, &archive1).unwrap();
-        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
+        memento_encode_archive(&mut buf, &archive1).unwrap();
+        memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = WhisperReader::new(&buf);
+        let reader = MementoReader::new(&buf);
         let res = reader.read(&req);
 
         assert!(res.is_ok());
@@ -530,12 +530,12 @@ mod tests {
             .with_until(until);
 
         let mut buf = vec![];
-        whisper_encode_header(&mut buf, &header).unwrap();
-        whisper_encode_archive(&mut buf, &archive1).unwrap();
-        whisper_encode_archive(&mut buf, &archive2).unwrap();
+        memento_encode_header(&mut buf, &header).unwrap();
+        memento_encode_archive(&mut buf, &archive1).unwrap();
+        memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = WhisperReader::new(&buf);
+        let reader = MementoReader::new(&buf);
         let res = reader.read(&req);
 
         assert!(res.is_ok());
