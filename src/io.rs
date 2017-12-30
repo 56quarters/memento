@@ -19,12 +19,10 @@ use memmap::{Mmap, Protection};
 
 use memento_core::errors::MementoResult;
 
-
 struct FileLocker<'a> {
     enabled: bool,
     file: &'a File,
 }
-
 
 impl<'a> FileLocker<'a> {
     fn lock_shared(enabled: bool, file: &'a File) -> io::Result<FileLocker<'a>> {
@@ -38,7 +36,6 @@ impl<'a> FileLocker<'a> {
         })
     }
 }
-
 
 impl<'a> Drop for FileLocker<'a> {
     fn drop(&mut self) {
@@ -54,7 +51,6 @@ impl<'a> Drop for FileLocker<'a> {
         };
     }
 }
-
 
 ///
 ///
@@ -73,7 +69,6 @@ impl Default for MappedFileStream {
         MappedFileStream { locking: true }
     }
 }
-
 
 impl MappedFileStream {
     pub fn new() -> Self {

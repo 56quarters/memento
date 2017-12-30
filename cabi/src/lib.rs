@@ -1,8 +1,7 @@
 extern crate memento;
 
-use memento::errors::{ErrorKind};
-use memento::types::{Header, Point, MementoDatabase};
-
+use memento::errors::ErrorKind;
+use memento::types::{Header, MementoDatabase, Point};
 
 #[repr(u32)]
 pub enum MementoErrorCode {
@@ -15,7 +14,6 @@ pub enum MementoErrorCode {
     NoArchiveAvailable = 7,
     CorruptDatabase = 8,
 }
-
 
 impl From<ErrorKind> for MementoErrorCode {
     fn from(kind: ErrorKind) -> MementoErrorCode {
@@ -31,14 +29,14 @@ impl From<ErrorKind> for MementoErrorCode {
     }
 }
 
-
 #[repr(C)]
 pub struct MementoResult {
     pub error: MementoErrorCode,
 }
 
-
 #[no_mangle]
 pub extern "C" fn whisper_fetch_path(from: u64, until: u64) -> MementoResult {
-    MementoResult { error: MementoErrorCode::NoError }
+    MementoResult {
+        error: MementoErrorCode::NoError,
+    }
 }

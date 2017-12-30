@@ -12,8 +12,7 @@
 
 use nom::{IResult, be_f32, be_f64, be_u32};
 
-use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, MementoDatabase};
-
+use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point};
 
 named!(parse_aggregation_type<&[u8], AggregationType>,
        switch!(be_u32,
@@ -28,7 +27,6 @@ named!(parse_aggregation_type<&[u8], AggregationType>,
        )
 );
 
-
 named!(parse_archive_info<&[u8], ArchiveInfo>,
        do_parse!(
            offset:         be_u32 >>
@@ -42,7 +40,6 @@ named!(parse_archive_info<&[u8], ArchiveInfo>,
        )
 );
 
-
 fn parse_archive_infos<'a, 'b>(
     input: &'a [u8],
     metadata: &'b Metadata,
@@ -53,7 +50,6 @@ fn parse_archive_infos<'a, 'b>(
     );
     IResult::Done(remaining, infos)
 }
-
 
 fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a [u8], Data> {
     let mut archives = Vec::with_capacity(infos.len());
@@ -67,7 +63,6 @@ fn parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a 
 
     IResult::Done(to_parse, Data::new(archives))
 }
-
 
 named!(parse_metadata<&[u8], Metadata>,
        do_parse!(
@@ -84,7 +79,6 @@ named!(parse_metadata<&[u8], Metadata>,
        )
 );
 
-
 named!(parse_point<&[u8], Point>,
        do_parse!(
            timestamp: be_u32 >>
@@ -93,7 +87,6 @@ named!(parse_point<&[u8], Point>,
        )
 );
 
-
 named!(pub memento_parse_header<&[u8], Header>,
        do_parse!(
            metadata: parse_metadata                         >>
@@ -101,7 +94,6 @@ named!(pub memento_parse_header<&[u8], Header>,
            (Header::new(metadata, archives))
        )
 );
-
 
 pub fn memento_parse_archive<'a, 'b>(
     input: &'a [u8],
@@ -112,7 +104,6 @@ pub fn memento_parse_archive<'a, 'b>(
     IResult::Done(remaining, Archive::new(points))
 }
 
-
 named!(pub memento_parse_database<&[u8], MementoDatabase>,
        do_parse!(
            header: memento_parse_header                      >>
@@ -121,14 +112,14 @@ named!(pub memento_parse_database<&[u8], MementoDatabase>,
        )
 );
 
-
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, MementoDatabase};
+    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata,
+                Point};
 
-    use super::{parse_aggregation_type, parse_archive_info, parse_archive_infos, parse_data,
-                parse_metadata, parse_point, memento_parse_archive, memento_parse_database,
-                memento_parse_header};
+    use super::{memento_parse_archive, memento_parse_database, memento_parse_header,
+                parse_aggregation_type, parse_archive_info, parse_archive_infos, parse_data,
+                parse_metadata, parse_point};
 
     #[test]
     fn test_parse_aggregation_type() {

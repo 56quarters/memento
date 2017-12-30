@@ -19,7 +19,6 @@ use memento_core::parser::{memento_parse_archive, memento_parse_header};
 use memento_core::types::{Archive, ArchiveInfo, Header, Point};
 use memento_core::errors::{ErrorKind, MementoError, MementoResult};
 
-
 ///
 ///
 ///
@@ -31,7 +30,6 @@ pub struct FetchRequest {
     until: DateTime<Utc>,
     now: DateTime<Utc>,
 }
-
 
 impl FetchRequest {
     ///
@@ -128,7 +126,6 @@ impl FetchRequest {
     }
 }
 
-
 impl Default for FetchRequest {
     ///
     ///
@@ -141,7 +138,6 @@ impl Default for FetchRequest {
     }
 }
 
-
 ///
 ///
 ///
@@ -151,7 +147,6 @@ impl Default for FetchRequest {
 pub struct MementoFileReader {
     mapper: MappedFileStream,
 }
-
 
 impl MementoFileReader {
     ///
@@ -174,7 +169,6 @@ impl MementoFileReader {
         })
     }
 }
-
 
 ///
 ///
@@ -273,7 +267,6 @@ impl<'a> MementoReader<'a> {
         Ok(Self::points_for_request(&archive, &req))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

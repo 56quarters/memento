@@ -1,24 +1,25 @@
 #![feature(test)]
-extern crate test;
 extern crate memento_core;
+extern crate test;
 
-use memento_core::encoder::{memento_encode_header, memento_encode_database};
-use memento_core::parser::{memento_parse_header, memento_parse_database};
-
+use memento_core::encoder::{memento_encode_database, memento_encode_header};
+use memento_core::parser::{memento_parse_database, memento_parse_header};
 
 #[bench]
 fn bench_memento_parse_header(b: &mut test::Bencher) {
     let bytes = include_bytes!("../../tests/mean_01.wsp");
-    b.iter(|| { memento_parse_header(bytes).unwrap(); });
+    b.iter(|| {
+        memento_parse_header(bytes).unwrap();
+    });
 }
-
 
 #[bench]
 fn bench_memento_parse_database(b: &mut test::Bencher) {
     let bytes = include_bytes!("../../tests/mean_01.wsp");
-    b.iter(|| { memento_parse_database(bytes).unwrap(); });
+    b.iter(|| {
+        memento_parse_database(bytes).unwrap();
+    });
 }
-
 
 #[bench]
 fn bench_memento_encode_header(b: &mut test::Bencher) {
@@ -31,7 +32,6 @@ fn bench_memento_encode_header(b: &mut test::Bencher) {
         buf.clear();
     });
 }
-
 
 #[bench]
 fn bench_memento_encode_database(b: &mut test::Bencher) {

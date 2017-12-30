@@ -16,9 +16,7 @@ use std::fmt;
 
 use nom;
 
-
 pub type MementoResult<T> = Result<T, MementoError>;
-
 
 #[derive(Debug)]
 enum ErrorRepr {
@@ -26,7 +24,6 @@ enum ErrorRepr {
     ParseError(nom::IError),
     WithDescription(ErrorKind, &'static str),
 }
-
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ErrorKind {
@@ -39,12 +36,10 @@ pub enum ErrorKind {
     CorruptDatabase,
 }
 
-
 #[derive(Debug)]
 pub struct MementoError {
     repr: ErrorRepr,
 }
-
 
 impl MementoError {
     pub fn kind(&self) -> ErrorKind {
@@ -55,7 +50,6 @@ impl MementoError {
         }
     }
 }
-
 
 impl fmt::Display for MementoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -69,7 +63,6 @@ impl fmt::Display for MementoError {
         }
     }
 }
-
 
 impl error::Error for MementoError {
     fn description(&self) -> &str {
@@ -95,7 +88,6 @@ impl error::Error for MementoError {
     }
 }
 
-
 impl From<io::Error> for MementoError {
     fn from(err: io::Error) -> MementoError {
         MementoError {
@@ -104,7 +96,6 @@ impl From<io::Error> for MementoError {
     }
 }
 
-
 impl From<nom::IError> for MementoError {
     fn from(err: nom::IError) -> MementoError {
         MementoError {
@@ -112,7 +103,6 @@ impl From<nom::IError> for MementoError {
         }
     }
 }
-
 
 impl From<(ErrorKind, &'static str)> for MementoError {
     fn from((kind, msg): (ErrorKind, &'static str)) -> MementoError {

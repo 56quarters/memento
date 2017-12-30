@@ -14,9 +14,8 @@ use std::io;
 
 use byteorder::{NetworkEndian, WriteBytesExt};
 
-use types::{Archive, ArchiveInfo, Data, Header, Metadata, Point, MementoDatabase};
+use types::{Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point};
 use errors::MementoResult;
-
 
 fn encode_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
 where
@@ -27,7 +26,6 @@ where
     writer.write_f32::<NetworkEndian>(meta.x_files_factor())?;
     writer.write_u32::<NetworkEndian>(meta.archive_count())
 }
-
 
 fn encode_archive_infos<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()>
 where
@@ -42,7 +40,6 @@ where
     Ok(())
 }
 
-
 fn encode_point<W>(writer: &mut W, point: &Point) -> io::Result<()>
 where
     W: WriteBytesExt,
@@ -50,7 +47,6 @@ where
     writer.write_u32::<NetworkEndian>(point.timestamp())?;
     writer.write_f64::<NetworkEndian>(point.value())
 }
-
 
 fn encode_data<W>(writer: &mut W, data: &Data) -> io::Result<()>
 where
@@ -63,7 +59,6 @@ where
     Ok(())
 }
 
-
 pub fn memento_encode_archive<W>(writer: &mut W, archive: &Archive) -> io::Result<()>
 where
     W: WriteBytesExt,
@@ -75,7 +70,6 @@ where
     Ok(())
 }
 
-
 pub fn memento_encode_header<W>(writer: &mut W, header: &Header) -> MementoResult<()>
 where
     W: WriteBytesExt,
@@ -83,7 +77,6 @@ where
     encode_metadata(writer, header.metadata())?;
     Ok(encode_archive_infos(writer, header.archive_info())?)
 }
-
 
 pub fn memento_encode_database<W>(writer: &mut W, file: &MementoDatabase) -> MementoResult<()>
 where
@@ -93,10 +86,10 @@ where
     Ok(encode_data(writer, file.data())?)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, Metadata, Point, MementoDatabase};
+    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata,
+                Point};
 
     use super::{encode_archive_infos, encode_data, encode_metadata, encode_point,
                 memento_encode_archive, memento_encode_database, memento_encode_header};

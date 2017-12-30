@@ -16,7 +16,6 @@ pub struct MementoDatabase {
     data: Data,
 }
 
-
 impl MementoDatabase {
     pub fn new(header: Header, data: Data) -> MementoDatabase {
         MementoDatabase {
@@ -36,13 +35,11 @@ impl MementoDatabase {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Header {
     metadata: Metadata,
     archive_info: Vec<ArchiveInfo>,
 }
-
 
 impl Header {
     pub fn new(metadata: Metadata, archive_info: Vec<ArchiveInfo>) -> Header {
@@ -77,7 +74,6 @@ impl Header {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(u32)]
 pub enum AggregationType {
@@ -91,13 +87,11 @@ pub enum AggregationType {
     AbsMin = 8,
 }
 
-
 impl Default for AggregationType {
     fn default() -> AggregationType {
         AggregationType::Average
     }
 }
-
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Metadata {
@@ -106,7 +100,6 @@ pub struct Metadata {
     x_files_factor: f32,
     archive_count: u32,
 }
-
 
 impl Metadata {
     pub fn new(
@@ -149,14 +142,12 @@ impl Metadata {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ArchiveInfo {
     offset: u32,
     seconds_per_point: u32,
     num_points: u32,
 }
-
 
 impl ArchiveInfo {
     pub fn new(offset: u32, seconds_per_point: u32, num_points: u32) -> ArchiveInfo {
@@ -198,12 +189,10 @@ impl ArchiveInfo {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Data {
     archives: Vec<Archive>,
 }
-
 
 impl Data {
     pub fn new(archives: Vec<Archive>) -> Data {
@@ -216,12 +205,10 @@ impl Data {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Archive {
     points: Vec<Point>,
 }
-
 
 impl Archive {
     pub fn new(points: Vec<Point>) -> Archive {
@@ -234,13 +221,11 @@ impl Archive {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Point {
     timestamp: u32,
     value: f64,
 }
-
 
 impl Point {
     pub fn new(timestamp: u32, value: f64) -> Point {
@@ -265,7 +250,6 @@ impl Point {
         self.value
     }
 }
-
 
 #[cfg(test)]
 mod tests {

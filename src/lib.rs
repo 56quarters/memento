@@ -17,7 +17,7 @@ mod read;
 mod write;
 mod io;
 
-pub use memento_core::types as types;
-pub use memento_core::errors as errors;
+pub use memento_core::types;
+pub use memento_core::errors;
 pub use read::{FetchRequest, MementoFileReader};
 pub use io::MappedFileStream;
