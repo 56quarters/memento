@@ -97,7 +97,7 @@ impl MementoResult {
     }
 
     pub fn is_error(&self) -> bool {
-        !self.is_null() && self.error.is_error()
+        self.error.is_error()
     }
 }
 
