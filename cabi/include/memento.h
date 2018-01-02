@@ -9,13 +9,14 @@
 
 enum MementoErrorCode {
   NoError = 0,
-  IoError = 1,
-  ParseEerror = 3,
-  InvalidTimeRange = 4,
-  InvalidTimeStart = 5,
-  InvalidTimeEnd = 6,
-  NoArchiveAvailable = 7,
-  CorruptDatabase = 8,
+  InvalidEncoding = 101,
+  IoError = 1001,
+  ParseEerror = 1002,
+  InvalidTimeRange = 1003,
+  InvalidTimeStart = 1004,
+  InvalidTimeEnd = 1005,
+  NoArchiveAvailable = 1006,
+  CorruptDatabase = 1007,
 };
 typedef uint32_t MementoErrorCode;
 
@@ -23,7 +24,17 @@ typedef struct {
   MementoErrorCode error;
 } MementoResult;
 
-MementoResult whisper_fetch_path(uint64_t from, uint64_t until);
+typedef struct {
+  const char *data;
+  size_t len;
+  bool owned;
+} MementoStr;
+
+MementoResult memento_fetch_path(const MementoStr *path, uint64_t from, uint64_t until);
+
+void memento_free_str(MementoStr *s);
+
+MementoStr memento_new_str(char *c);
 
 #endif /* MEMENTO_H_INCLUDED */
 

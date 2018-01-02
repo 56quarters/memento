@@ -12,4 +12,5 @@ memento = { path = ".." }
 cbindgen = "0.3.3"
 
 [lib]
+name = "memento"
 crate-type = ["cdylib"]
