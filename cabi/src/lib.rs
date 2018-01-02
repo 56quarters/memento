@@ -2,12 +2,10 @@ extern crate memento;
 
 use std::mem;
 use std::ptr;
-use std::str;
-use std::slice;
-use std::ffi::{CStr, CString};
+//use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use memento::errors::ErrorKind;
-use memento::types::{Header, MementoDatabase, Point};
+use memento::types::{Point};
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -114,16 +112,18 @@ impl Default for MementoResult {
 #[allow(unused_variables)]
 #[no_mangle]
 pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64) -> MementoResult {
+    assert!(path != ptr::null(), "Unexpected null path string");
     MementoResult::default()
 }
 
-#[allow(unused_variables)]
 #[no_mangle]
 pub unsafe extern "C" fn mement_result_free(res: *mut MementoResult) {
+    assert!(res != ptr::null_mut(), "Unexpected null result pointer");
     (*res).free();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
+    assert!(res != ptr::null(), "Unexpected null result pointer");
     (*res).is_error()
 }
