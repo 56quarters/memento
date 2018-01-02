@@ -20,21 +20,19 @@ enum MementoErrorCode {
 };
 typedef uint32_t MementoErrorCode;
 
+typedef struct Point Point;
+
 typedef struct {
   MementoErrorCode error;
+  Point *results;
+  size_t size;
 } MementoResult;
 
-typedef struct {
-  const char *data;
-  size_t len;
-  bool owned;
-} MementoStr;
+void mement_result_free(MementoResult *res);
 
-MementoResult memento_fetch_path(const MementoStr *path, uint64_t from, uint64_t until);
+MementoResult memento_fetch_path(const char *path, uint64_t from, uint64_t until);
 
-void memento_free_str(MementoStr *s);
-
-MementoStr memento_new_str(char *c);
+bool memento_result_is_error(const MementoResult *res);
 
 #endif /* MEMENTO_H_INCLUDED */
 

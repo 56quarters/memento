@@ -7,7 +7,7 @@ use std::slice;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use memento::errors::ErrorKind;
-//use memento::types::{Header, MementoDatabase, Point};
+use memento::types::{Header, MementoDatabase, Point};
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -55,80 +55,75 @@ impl Default for MementoErrorCode {
 #[derive(Debug)]
 pub struct MementoResult {
     pub error: MementoErrorCode,
+    pub results: *mut Point,
+    pub size: usize,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone)]
-pub struct MementoStr {
-    pub data: *const c_char,
-    pub len: usize,
-    pub owned: bool,
-}
+impl MementoResult {
+    pub fn from_results(mut res: Vec<Point>) -> MementoResult {
+        res.shrink_to_fit();
+        let out = MementoResult {
+            error: MementoErrorCode::NoError,
+            results: (&mut res).as_mut_ptr(),
+            size: res.len(),
+        };
+        mem::forget(res);
+        out
+    }
 
-impl MementoStr {
-    pub fn from_str(s: &str) -> MementoStr {
-        MementoStr {
-            data: s.as_ptr() as *const c_char,
-            len: s.len(),
-            owned: false,
+    pub fn from_error(err: MementoErrorCode) -> MementoResult {
+        MementoResult {
+            error: err,
+            results: ptr::null_mut(),
+            size: 0,
         }
     }
 
-    pub fn from_string(mut s: String) -> MementoStr {
-        s.shrink_to_fit();
-        let val = MementoStr {
-            data: s.as_ptr() as *const c_char,
-            len: s.len(),
-            owned: true
-        };
-        mem::forget(s);
-        val
-    }
-
-    pub unsafe fn free(&mut self) {
-        // TODO: Is it possible to make this safe? (the from_raw_parts call)
-        if self.owned && !self.is_null() {
-            // Create an owned string here from our data just so that ownership
-            // is taken over the block of memory we were using and it's properly
-            // cleaned up.
-            String::from_raw_parts(self.data as *mut _, self.len, self.len);
-            self.data = ptr::null();
-            self.len = 0;
-            self.owned = false;
+    pub fn free(&mut self) {
+        if !self.is_null() {
+            unsafe {
+                // If this is non-null it was created by Rust code from a valid vector
+                // of results, it's safe to recreate the vector here.
+                Vec::from_raw_parts(self.results as *mut Point, self.size, self.size);
+            }
+            self.error = MementoErrorCode::NoError;
+            self.results = ptr::null_mut();
+            self.size = 0;
         }
     }
 
     pub fn is_null(&self) -> bool {
-        self.data == ptr::null()
+        self.results == ptr::null_mut()
     }
 
-    pub fn as_str(&self) -> &str {
-        // TODO: This is wildly unsafe
-        unsafe {
-            str::from_utf8_unchecked(
-                slice::from_raw_parts(self.data as *const _, self.len))
+    pub fn is_error(&self) -> bool {
+        !self.is_null() && self.error.is_error()
+    }
+}
+
+impl Default for MementoResult {
+    fn default() -> Self {
+        MementoResult {
+            error: MementoErrorCode::NoError,
+            results: ptr::null_mut(),
+            size: 0
         }
     }
 }
 
+#[allow(unused_variables)]
 #[no_mangle]
-pub unsafe extern "C" fn memento_new_str(c: *mut c_char) -> MementoStr {
-    let s = CString::from_raw(c).into_string().unwrap();
-    MementoStr::from_string(s)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn memento_free_str(s: *mut MementoStr) {
-    (*s).free();
+pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64) -> MementoResult {
+    MementoResult::default()
 }
 
 #[allow(unused_variables)]
 #[no_mangle]
-pub extern "C" fn memento_fetch_path(path: *const MementoStr, from: u64, until: u64) -> MementoResult {
-    let our_path = unsafe { (*path).clone() };
-    println!("Path: {}", our_path.as_str());
+pub unsafe extern "C" fn mement_result_free(res: *mut MementoResult) {
+    (*res).free();
+}
 
-    MementoResult {
-        error: MementoErrorCode::NoError,
-    }
+#[no_mangle]
+pub unsafe extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
+    (*res).is_error()
 }
