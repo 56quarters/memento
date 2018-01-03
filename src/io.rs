@@ -66,13 +66,13 @@ pub struct MappedFileStream {
 
 impl Default for MappedFileStream {
     fn default() -> Self {
-        MappedFileStream { locking: true }
+        Self::new(true)
     }
 }
 
 impl MappedFileStream {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(locking: bool) -> Self {
+        MappedFileStream { locking: locking }
     }
 
     pub fn with_locking(&mut self, locking: bool) -> &mut Self {

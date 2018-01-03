@@ -152,7 +152,7 @@ impl MementoFileReader {
     ///
     ///
     ///
-    pub fn new(mapper: MappedFileStream) -> MementoFileReader {
+    pub fn new(mapper: MappedFileStream) -> Self {
         MementoFileReader { mapper: mapper }
     }
 
@@ -167,6 +167,12 @@ impl MementoFileReader {
             let reader = MementoReader::new(bytes);
             reader.read(req)
         })
+    }
+}
+
+impl Default for MementoFileReader {
+    fn default() -> Self {
+        MementoFileReader::new(MappedFileStream::default())
     }
 }
 

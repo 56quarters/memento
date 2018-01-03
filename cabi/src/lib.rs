@@ -7,7 +7,7 @@ use std::slice;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use chrono::{TimeZone, Utc};
-use memento::{FetchRequest, MementoFileReader, MappedFileStream};
+use memento::{FetchRequest, MementoFileReader};
 use memento::errors::ErrorKind;
 use memento::types::Point;
 
@@ -130,8 +130,7 @@ pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64)
 
     let wsp = unsafe { CStr::from_ptr(path).to_owned().to_str().unwrap().to_owned() };
 
-    let stream = MappedFileStream::new();
-    let reader = MementoFileReader::new(stream);
+    let reader = MementoFileReader::default();
     let request = FetchRequest::default()
         .with_from(Utc.timestamp(from as i64, 0))
         .with_until(Utc.timestamp(until as i64, 0));
