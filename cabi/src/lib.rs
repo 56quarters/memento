@@ -51,15 +51,31 @@ impl Default for MementoErrorCode {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct MementoPoint {
+    pub timestamp: u32,
+    pub value: f64,
+}
+
+impl From<Point> for MementoPoint {
+    fn from(p: Point) -> Self {
+        MementoPoint {
+            timestamp: p.timestamp(),
+            value: p.value(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MementoResult {
     pub error: MementoErrorCode,
-    pub results: *mut Point,
+    pub results: *mut MementoPoint,
     pub size: usize,
 }
 
 impl MementoResult {
-    pub fn from_results(mut res: Vec<Point>) -> MementoResult {
+    pub fn from_results(mut res: Vec<MementoPoint>) -> MementoResult {
         res.shrink_to_fit();
         let out = MementoResult {
             error: MementoErrorCode::NoError,
@@ -91,7 +107,7 @@ impl MementoResult {
             unsafe {
                 // If this is non-null it was created by Rust code from a valid vector
                 // of results, it's safe to recreate the vector here.
-                Vec::from_raw_parts(self.results as *mut Point, self.size, self.size);
+                Vec::from_raw_parts(self.results as *mut MementoPoint, self.size, self.size);
             }
             self.error = MementoErrorCode::NoError;
             self.results = ptr::null_mut();
@@ -134,7 +150,9 @@ pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64)
         .with_until(Utc.timestamp(until as i64, 0));
 
     match reader.read(wsp, &request) {
-        Ok(points) => MementoResult::from_results(points),
+        Ok(points) => {
+            MementoResult::from_results(points.into_iter().map(|p| MementoPoint::from(p)).collect())
+        }
         Err(err) => MementoResult::from_error_kind(err.kind()),
     }
 }

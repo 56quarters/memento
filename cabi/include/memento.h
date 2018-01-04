@@ -20,11 +20,14 @@ enum MementoErrorCode {
 };
 typedef uint32_t MementoErrorCode;
 
-typedef struct Point Point;
+typedef struct {
+  uint32_t timestamp;
+  double value;
+} MementoPoint;
 
 typedef struct {
   MementoErrorCode error;
-  Point *results;
+  MementoPoint *results;
   size_t size;
 } MementoResult;
 
