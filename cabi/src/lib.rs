@@ -3,8 +3,7 @@ extern crate memento;
 
 use std::mem;
 use std::ptr;
-use std::slice;
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::os::raw::c_char;
 use chrono::{TimeZone, Utc};
 use memento::{FetchRequest, MementoFileReader};
@@ -15,9 +14,7 @@ use memento::types::Point;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MementoErrorCode {
     NoError = 0,
-
-    InvalidEncoding = 101,
-
+    InvalidString = 101,
     IoError = 1001,
     ParseEerror = 1002,
     InvalidTimeRange = 1003,
@@ -103,7 +100,7 @@ impl MementoResult {
     }
 
     pub fn is_null(&self) -> bool {
-        self.results == ptr::null_mut()
+        self.results.is_null()
     }
 
     pub fn is_error(&self) -> bool {
@@ -116,19 +113,20 @@ impl Default for MementoResult {
         MementoResult {
             error: MementoErrorCode::NoError,
             results: ptr::null_mut(),
-            size: 0
+            size: 0,
         }
     }
 }
 
-#[allow(unused_variables)]
 #[no_mangle]
 pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64) -> MementoResult {
-    assert!(path != ptr::null(), "Unexpected null path string");
+    assert!(!path.is_null(), "Unexpected null path string");
 
-    //CStr::from_bytes_with_nul(path as &[u8]);
-
-    let wsp = unsafe { CStr::from_ptr(path).to_owned().to_str().unwrap().to_owned() };
+    let c_str = unsafe { CStr::from_ptr(path) };
+    let wsp = match c_str.to_str() {
+        Ok(v) => v,
+        Err(_) => return MementoResult::from_error_code(MementoErrorCode::InvalidString),
+    };
 
     let reader = MementoFileReader::default();
     let request = FetchRequest::default()
@@ -142,13 +140,13 @@ pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mement_result_free(res: *mut MementoResult) {
-    assert!(res != ptr::null_mut(), "Unexpected null result pointer");
+pub unsafe extern "C" fn memento_result_free(res: *mut MementoResult) {
+    assert!(!res.is_null(), "Unexpected null result pointer");
     (*res).free();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
-    assert!(res != ptr::null(), "Unexpected null result pointer");
+    assert!(!res.is_null(), "Unexpected null result pointer");
     (*res).is_error()
 }

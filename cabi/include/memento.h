@@ -1,4 +1,4 @@
-/* begin generated memento header (see cabi/build.rs) */
+/* generated memento header (see cabi/build.rs) */
 
 #ifndef MEMENTO_H_INCLUDED
 #define MEMENTO_H_INCLUDED
@@ -9,7 +9,7 @@
 
 enum MementoErrorCode {
   NoError = 0,
-  InvalidEncoding = 101,
+  InvalidString = 101,
   IoError = 1001,
   ParseEerror = 1002,
   InvalidTimeRange = 1003,
@@ -28,12 +28,10 @@ typedef struct {
   size_t size;
 } MementoResult;
 
-void mement_result_free(MementoResult *res);
-
 MementoResult memento_fetch_path(const char *path, uint64_t from, uint64_t until);
+
+void memento_result_free(MementoResult *res);
 
 bool memento_result_is_error(const MementoResult *res);
 
 #endif /* MEMENTO_H_INCLUDED */
-
-/* end generated memento header (see cabi/build.rs) */
