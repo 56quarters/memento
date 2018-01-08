@@ -135,7 +135,7 @@ impl Default for MementoResult {
 }
 
 #[no_mangle]
-pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64) -> MementoResult {
+pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoResult {
     assert!(!path.is_null(), "Unexpected null path string");
 
     let c_str = unsafe { CStr::from_ptr(path) };
@@ -155,6 +155,11 @@ pub extern "C" fn memento_fetch_path(path: *const c_char, from: u64, until: u64)
         }
         Err(err) => MementoResult::from_error_kind(err.kind()),
     }
+}
+
+#[no_mangle]
+pub extern "C" fn memento_result_load(path: *const c_char, from: u64, until: u64, res: *mut MementoResult) -> MementoErrorCode {
+    unimplemented!();
 }
 
 #[no_mangle]

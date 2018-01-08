@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv) {
     time_t now = time(NULL);
-    MementoResult res = memento_fetch_path("../tests/count_01.wsp", 100, now);
+    MementoResult res = memento_result_fetch("../tests/count_01.wsp", 100, now);
 
     if (memento_result_is_error(&res)) {
         fprintf(stderr, "Failure getting results!\n");

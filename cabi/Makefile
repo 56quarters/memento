@@ -1,13 +1,13 @@
 include/memento.h:
 	cargo build
 
-ctest: include/memento.h test.c
-	$(CC) -Wall -pedantic -Iinclude -Ltarget/debug -lmemento -o ctest test.c
+c-tests: include/memento.h c-tests/main.c
+	$(CC) -Wall -pedantic -Iinclude -Ltarget/debug -lmemento -o target/c-tests c-tests/main.c
 
 clean:
-	rm -f ctest
+	rm -f target/c-tests
 
-run: ctest
-	LD_LIBRARY_PATH=target/debug ./ctest
+run: c-tests
+	LD_LIBRARY_PATH=target/debug ./target/c-tests
 
 .PHONY: include/memento.h
