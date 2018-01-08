@@ -53,15 +53,15 @@ impl Default for MementoErrorCode {
 #[repr(C)]
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct MementoPoint {
-    pub timestamp: u32,
     pub value: f64,
+    pub timestamp: u32,
 }
 
 impl From<Point> for MementoPoint {
     fn from(p: Point) -> Self {
         MementoPoint {
-            timestamp: p.timestamp(),
             value: p.value(),
+            timestamp: p.timestamp(),
         }
     }
 }
@@ -69,9 +69,9 @@ impl From<Point> for MementoPoint {
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct MementoResult {
-    pub error: MementoErrorCode,
     pub results: *mut MementoPoint,
     pub size: usize,
+    pub error: MementoErrorCode,
 }
 
 impl MementoResult {
