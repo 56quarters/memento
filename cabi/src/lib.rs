@@ -135,12 +135,11 @@ impl Default for MementoResult {
 
 #[no_mangle]
 pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u64) -> *mut MementoResult {
+    assert!(!path.is_null(), "memento_result_fetch: unexpected null pointer");
     Box::into_raw(Box::new(_memento_result_fetch(path, from, until)))
 }
 
 fn _memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoResult {
-    assert!(!path.is_null(), "Unexpected null path string");
-
     let c_str = unsafe { CStr::from_ptr(path) };
     let wsp = match c_str.to_str() {
         Ok(v) => v,
@@ -162,7 +161,7 @@ fn _memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoR
 
 #[no_mangle]
 pub unsafe extern "C" fn memento_result_free(res: *mut MementoResult) {
-    assert!(!res.is_null(), "Unexpected null result pointer");
+    assert!(!res.is_null(), "memento_result_free: unexpected null pointer");
     // Turn our pointer to a result object back into a Boxed type so it can be dropped.
     // The destructor for our result object will in turn, convert the c-style array
     // (pointer + length) back into a Rust vector so that it can be properly dropped as
@@ -172,6 +171,6 @@ pub unsafe extern "C" fn memento_result_free(res: *mut MementoResult) {
 
 #[no_mangle]
 pub unsafe extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
-    assert!(!res.is_null(), "Unexpected null result pointer");
+    assert!(!res.is_null(), "memento_result_is_error: unexpected null pointer");
     (*res).is_error()
 }
