@@ -69,17 +69,17 @@ impl From<Point> for MementoPoint {
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct MementoResult {
-    pub results: *mut MementoPoint,
+    pub points: *mut MementoPoint,
     pub size: usize,
     pub error: MementoErrorCode,
 }
 
 impl MementoResult {
-    pub fn from_results(mut res: Vec<MementoPoint>) -> MementoResult {
+    pub fn from_points(mut res: Vec<MementoPoint>) -> MementoResult {
         res.shrink_to_fit();
         let out = MementoResult {
             error: MementoErrorCode::NoError,
-            results: (&mut res).as_mut_ptr(),
+            points: (&mut res).as_mut_ptr(),
             size: res.len(),
         };
         mem::forget(res);
@@ -89,7 +89,7 @@ impl MementoResult {
     pub fn from_error_code(err: MementoErrorCode) -> MementoResult {
         MementoResult {
             error: err,
-            results: ptr::null_mut(),
+            points: ptr::null_mut(),
             size: 0,
         }
     }
@@ -97,26 +97,9 @@ impl MementoResult {
     pub fn from_error_kind(err: ErrorKind) -> MementoResult {
         MementoResult {
             error: MementoErrorCode::from(err),
-            results: ptr::null_mut(),
+            points: ptr::null_mut(),
             size: 0,
         }
-    }
-
-    pub fn free(&mut self) {
-        if !self.is_null() {
-            unsafe {
-                // If this is non-null it was created by Rust code from a valid vector
-                // of results, it's safe to recreate the vector here.
-                Vec::from_raw_parts(self.results as *mut MementoPoint, self.size, self.size);
-            }
-            self.error = MementoErrorCode::NoError;
-            self.results = ptr::null_mut();
-            self.size = 0;
-        }
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.results.is_null()
     }
 
     pub fn is_error(&self) -> bool {
@@ -124,18 +107,38 @@ impl MementoResult {
     }
 }
 
+impl Drop for MementoResult {
+    fn drop(&mut self) {
+       if !self.points.is_null() {
+            unsafe {
+                // If our results are non-null they were created by Rust code from a valid
+                // vector of results, it's safe to recreate the vector here to ensure the
+                // memory is reclaimed.
+                Vec::from_raw_parts(self.points as *mut MementoPoint, self.size, self.size);
+            }
+            self.error = MementoErrorCode::NoError;
+            self.points = ptr::null_mut();
+            self.size = 0;
+        }
+    }
+}
+
 impl Default for MementoResult {
     fn default() -> Self {
         MementoResult {
             error: MementoErrorCode::NoError,
-            results: ptr::null_mut(),
+            points: ptr::null_mut(),
             size: 0,
         }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoResult {
+pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u64) -> *mut MementoResult {
+    Box::into_raw(Box::new(_memento_result_fetch(path, from, until)))
+}
+
+fn _memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoResult {
     assert!(!path.is_null(), "Unexpected null path string");
 
     let c_str = unsafe { CStr::from_ptr(path) };
@@ -151,21 +154,20 @@ pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u6
 
     match reader.read(wsp, &request) {
         Ok(points) => {
-            MementoResult::from_results(points.into_iter().map(|p| MementoPoint::from(p)).collect())
-        }
+            MementoResult::from_points(points.into_iter().map(|p| MementoPoint::from(p)).collect())
+        },
         Err(err) => MementoResult::from_error_kind(err.kind()),
     }
 }
 
 #[no_mangle]
-pub extern "C" fn memento_result_load(path: *const c_char, from: u64, until: u64, res: *mut MementoResult) -> MementoErrorCode {
-    unimplemented!();
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn memento_result_free(res: *mut MementoResult) {
     assert!(!res.is_null(), "Unexpected null result pointer");
-    (*res).free();
+    // Turn our pointer to a result object back into a Boxed type so it can be dropped.
+    // The destructor for our result object will in turn, convert the c-style array
+    // (pointer + length) back into a Rust vector so that it can be properly dropped as
+    // well.
+    Box::from_raw(res);
 }
 
 #[no_mangle]

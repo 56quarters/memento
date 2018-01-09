@@ -21,25 +21,20 @@ enum MementoErrorCode {
 typedef uint32_t MementoErrorCode;
 
 typedef struct {
-  uint32_t timestamp;
   double value;
+  uint32_t timestamp;
 } MementoPoint;
 
 typedef struct {
-  MementoErrorCode error;
-  MementoPoint *results;
+  MementoPoint *points;
   size_t size;
+  MementoErrorCode error;
 } MementoResult;
 
-MementoResult memento_result_fetch(const char *path, uint64_t from, uint64_t until);
+MementoResult *memento_result_fetch(const char *path, uint64_t from, uint64_t until);
 
 void memento_result_free(MementoResult *res);
 
 bool memento_result_is_error(const MementoResult *res);
-
-MementoErrorCode memento_result_load(const char *path,
-                                     uint64_t from,
-                                     uint64_t until,
-                                     MementoResult *res);
 
 #endif /* MEMENTO_H_INCLUDED */
