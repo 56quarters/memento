@@ -15,8 +15,8 @@ use std::path::Path;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 
 use io::MappedFileStream;
-use memento_core::parser::{memento_parse_archive, memento_parse_header};
-use memento_core::types::{Archive, ArchiveInfo, Header, Point};
+use memento_core::parser::{memento_parse_archive, memento_parse_header, memento_parse_database};
+use memento_core::types::{Archive, ArchiveInfo, Header, Point, MementoDatabase};
 use memento_core::errors::{ErrorKind, MementoError, MementoResult};
 
 ///
@@ -159,6 +159,32 @@ impl MementoFileReader {
     ///
     ///
     ///
+    pub fn read_header<P>(&self, path: P) -> MementoResult<Header>
+    where
+         P: AsRef<Path>,
+    {
+        self.mapper.run_immutable(path, |bytes| {
+            let reader = MementoReader::new(bytes);
+            reader.read_header()
+        })
+    }
+
+    ///
+    ///
+    ///
+    pub fn read_database<P>(&self, path: P) -> MementoResult<MementoDatabase>
+    where
+         P: AsRef<Path>,
+    {
+        self.mapper.run_immutable(path, |bytes| {
+            let reader = MementoReader::new(bytes);
+            reader.read_database()
+        })
+    }
+
+    ///
+    ///
+    ///
     pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<Vec<Point>>
     where
         P: AsRef<Path>,
@@ -252,6 +278,16 @@ impl<'a> MementoReader<'a> {
             .filter(|p| Utc.timestamp(i64::from(p.timestamp()), 0) <= request.until)
             .cloned()
             .collect()
+    }
+
+    fn read_header(&self) -> MementoResult<Header> {
+        let header = memento_parse_header(self.bytes).to_full_result()?;
+        Ok(header)
+    }
+
+    fn read_database(&self) -> MementoResult<MementoDatabase> {
+        let db = memento_parse_database(self.bytes).to_full_result()?;
+        Ok(db)
     }
 
     ///

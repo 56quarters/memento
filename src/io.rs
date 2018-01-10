@@ -109,7 +109,7 @@ mod tests {
         let expected: [u8; 1024] = [0; 1024];
         let expected_ref = &expected as &[u8];
 
-        let mapper = MappedFileStream::new();
+        let mapper = MappedFileStream::default();
         let _ = mapper
             .run_immutable("tests/zero_file.bin", |bytes| {
                 assert_eq!(expected_ref, bytes);
