@@ -15,8 +15,8 @@ use std::path::Path;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 
 use io::MappedFileStream;
-use memento_core::parser::{memento_parse_archive, memento_parse_header, memento_parse_database};
-use memento_core::types::{Archive, ArchiveInfo, Header, Point, MementoDatabase};
+use memento_core::parser::{memento_parse_archive, memento_parse_database, memento_parse_header};
+use memento_core::types::{Archive, ArchiveInfo, Header, MementoDatabase, Point};
 use memento_core::errors::{ErrorKind, MementoError, MementoResult};
 
 ///
@@ -161,7 +161,7 @@ impl MementoFileReader {
     ///
     pub fn read_header<P>(&self, path: P) -> MementoResult<Header>
     where
-         P: AsRef<Path>,
+        P: AsRef<Path>,
     {
         self.mapper.run_immutable(path, |bytes| {
             let reader = MementoReader::new(bytes);
@@ -174,7 +174,7 @@ impl MementoFileReader {
     ///
     pub fn read_database<P>(&self, path: P) -> MementoResult<MementoDatabase>
     where
-         P: AsRef<Path>,
+        P: AsRef<Path>,
     {
         self.mapper.run_immutable(path, |bytes| {
             let reader = MementoReader::new(bytes);
