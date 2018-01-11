@@ -31,10 +31,25 @@ typedef struct {
   MementoErrorCode error;
 } MementoResult;
 
+/*
+ *
+ *
+ *
+ */
 MementoResult *memento_result_fetch(const char *path, uint64_t from, uint64_t until);
 
+/*
+ *
+ *
+ *
+ */
 void memento_result_free(MementoResult *res);
 
+/*
+ *
+ *
+ *
+ */
 bool memento_result_is_error(const MementoResult *res);
 
 #endif /* MEMENTO_H_INCLUDED */

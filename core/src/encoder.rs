@@ -1,6 +1,6 @@
-// Memento - A Whisper implemention in Rust
+// Memento - A Whisper implementation in Rust
 //
-// Copyright 2017 TSH Labs
+// Copyright 2017-2018 TSH Labs
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license

@@ -1,3 +1,15 @@
+// Memento - A Whisper implementation in Rust
+//
+// Copyright 2017-2018 TSH Labs
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+
+//! C compatible API for Memento
+
 extern crate chrono;
 extern crate memento;
 
@@ -133,6 +145,9 @@ impl Default for MementoResult {
     }
 }
 
+///
+///
+///
 #[no_mangle]
 pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u64) -> *mut MementoResult {
     assert!(!path.is_null(), "memento_result_fetch: unexpected null pointer");
@@ -159,18 +174,24 @@ fn _memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoR
     }
 }
 
+///
+///
+///
 #[no_mangle]
-pub unsafe extern "C" fn memento_result_free(res: *mut MementoResult) {
+pub extern "C" fn memento_result_free(res: *mut MementoResult) {
     assert!(!res.is_null(), "memento_result_free: unexpected null pointer");
     // Turn our pointer to a result object back into a Boxed type so it can be dropped.
     // The destructor for our result object will in turn, convert the c-style array
     // (pointer + length) back into a Rust vector so that it can be properly dropped as
     // well.
-    Box::from_raw(res);
+    unsafe { Box::from_raw(res) };
 }
 
+///
+///
+///
 #[no_mangle]
-pub unsafe extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
+pub extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
     assert!(!res.is_null(), "memento_result_is_error: unexpected null pointer");
-    (*res).is_error()
+    unsafe { (*res).is_error() }
 }
