@@ -19,11 +19,9 @@ use memento_core::parser::{memento_parse_archive, memento_parse_database, mement
 use memento_core::types::{Archive, ArchiveInfo, Header, MementoDatabase, Point};
 use memento_core::errors::{ErrorKind, MementoError, MementoResult};
 
+/// Request describing a time range to fetch values for.
 ///
-///
-///
-///
-///
+/// All `DateTime` instances are converted to UTC.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FetchRequest {
     from: DateTime<Utc>,
@@ -32,11 +30,7 @@ pub struct FetchRequest {
 }
 
 impl FetchRequest {
-    ///
-    ///
-    ///
-    ///
-    ///
+    /// Create a new request from the given values, converting to UTC.
     pub fn new<T>(from: DateTime<T>, until: DateTime<T>, now: DateTime<T>) -> FetchRequest
     where
         T: TimeZone,
@@ -48,8 +42,7 @@ impl FetchRequest {
         }
     }
 
-    ///
-    ///
+    /// Use the given `from` time for this request.
     pub fn with_from<T>(mut self, val: DateTime<T>) -> Self
     where
         T: TimeZone,
@@ -58,8 +51,7 @@ impl FetchRequest {
         self
     }
 
-    ///
-    ///
+    /// Use the given `until` time for this request.
     pub fn with_until<T>(mut self, val: DateTime<T>) -> Self
     where
         T: TimeZone,
@@ -68,8 +60,10 @@ impl FetchRequest {
         self
     }
 
+    /// The the given `now` time for this request.
     ///
-    ///
+    /// This is generally only required for testing purposes and won't
+    /// be used by callers of this library.
     pub fn with_now<T>(mut self, val: DateTime<T>) -> Self
     where
         T: TimeZone,
@@ -78,10 +72,8 @@ impl FetchRequest {
         self
     }
 
-    ///
-    ///
-    ///
-    ///
+    /// Create a new request coerced to values that make sense or return
+    /// an error if there's no way the request could be fulfilled.
     fn normalize(&self, header: &Header) -> MementoResult<Self> {
         let metadata = header.metadata();
         let oldest = self.now - Duration::seconds(i64::from(metadata.max_retention()));
@@ -120,15 +112,14 @@ impl FetchRequest {
         Ok(FetchRequest::new(from, self.until, self.now))
     }
 
-    ///
+    /// Required retention time of a database to fulfill this request.
     fn retention(&self) -> Duration {
         self.now.signed_duration_since(self.from)
     }
 }
 
 impl Default for FetchRequest {
-    ///
-    ///
+    /// Default request for the last day of data
     fn default() -> Self {
         let now = Utc::now();
         let from = now - Duration::days(1);
@@ -138,27 +129,42 @@ impl Default for FetchRequest {
     }
 }
 
+/// Read a Whisper database file using memory mapping and locking.
 ///
+/// # Locking
 ///
+/// A shared (read only) lock is acquired before attempting to read
+/// each database file. If the lock cannot be obtained an error will
+/// be returned from the relevant method.
 ///
+/// # Memory Mapping
 ///
+/// Files are read using memory mapping. This typically results in
+/// faster performance than doing multiple individual reads of the
+/// file when fetching data. For small reads (such as only reading
+/// the header of a file) it is typically slower than doing regular
+/// reads of the file.
 ///
+/// However, memory mapping results in vastly simpler code for parsing
+/// database files.
 #[derive(Debug, Clone)]
 pub struct MementoFileReader {
     mapper: MappedFileStream,
 }
 
 impl MementoFileReader {
-    ///
-    ///
-    ///
+    /// Create a new file reader using the given file mapper.
     pub fn new(mapper: MappedFileStream) -> Self {
         MementoFileReader { mapper: mapper }
     }
 
+    /// Read only the header of a whisper database file.
     ///
+    /// # Errors
     ///
-    ///
+    /// Return an error result if there were any I/O errors reading
+    /// the database file (such as permission errors) or if it was
+    /// malformed.
     pub fn read_header<P>(&self, path: P) -> MementoResult<Header>
     where
         P: AsRef<Path>,
@@ -169,9 +175,13 @@ impl MementoFileReader {
         })
     }
 
+    /// Read and entire whisper database file (header + data).
     ///
+    /// # Errors
     ///
-    ///
+    /// Return an error result if there were any I/O errors reading
+    /// the database file (such as permission errors) or if it was
+    /// malformed.
     pub fn read_database<P>(&self, path: P) -> MementoResult<MementoDatabase>
     where
         P: AsRef<Path>,
@@ -182,9 +192,15 @@ impl MementoFileReader {
         })
     }
 
+    /// Read a portion of a whisper database file based on the given
+    /// request.
     ///
+    /// # Errors
     ///
-    ///
+    /// Return an error result if there were any I/O errors reading
+    /// the database file (such as permission errors), if the file was
+    /// malformed, or if the request could not be fulfilled by this
+    /// database file.
     pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<Vec<Point>>
     where
         P: AsRef<Path>,
@@ -202,26 +218,20 @@ impl Default for MementoFileReader {
     }
 }
 
-///
-///
-///
-///
-///
+/// Logic for parsing a stream of bytes into portions of a Whisper
+/// database file.
 #[derive(Debug)]
 struct MementoReader<'a> {
     bytes: &'a [u8],
 }
 
 impl<'a> MementoReader<'a> {
-    ///
-    ///
     fn new(bytes: &'a [u8]) -> MementoReader<'a> {
         MementoReader { bytes: bytes }
     }
 
-    ///
-    ///
-    ///
+    /// Find the archive in this file that is capable of fulfilling the
+    /// given request or return an error if there is no archive that can
     fn find_archive<'b, 'c>(
         req: &'b FetchRequest,
         header: &'c Header,
@@ -242,9 +252,9 @@ impl<'a> MementoReader<'a> {
         )))
     }
 
-    ///
-    ///
-    ///
+    /// Get the byte range associated with the given archive or an error
+    /// if that range isn't part of this file (indicating a malformed
+    /// database file).
     fn slice_for_archive(&self, archive: &ArchiveInfo) -> MementoResult<&[u8]> {
         let offset = archive.offset() as usize;
         // These two conditions should never happen but it's nice to handle
@@ -267,9 +277,8 @@ impl<'a> MementoReader<'a> {
         Ok(&self.bytes[offset..offset + archive.archive_size()])
     }
 
-    ///
-    ///
-    ///
+    /// Get the subset of points in the given archive required for the
+    /// given request.
     fn points_for_request(archive: &Archive, request: &FetchRequest) -> Vec<Point> {
         archive
             .points()
@@ -290,9 +299,6 @@ impl<'a> MementoReader<'a> {
         Ok(db)
     }
 
-    ///
-    ///
-    ///
     fn read(&self, req: &FetchRequest) -> MementoResult<Vec<Point>> {
         let header = memento_parse_header(self.bytes).to_full_result()?;
         // validate the that requested ranges are something that we can
