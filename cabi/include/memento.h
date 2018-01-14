@@ -36,7 +36,7 @@ typedef struct {
  *
  *
  */
-MementoResult *memento_result_fetch(const char *path, uint64_t from, uint64_t until);
+MementoResult *memento_result_fetch(const char *path, int64_t from, int64_t until);
 
 /*
  *

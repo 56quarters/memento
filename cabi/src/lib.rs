@@ -121,7 +121,7 @@ impl MementoResult {
 
 impl Drop for MementoResult {
     fn drop(&mut self) {
-       if !self.points.is_null() {
+        if !self.points.is_null() {
             unsafe {
                 // If our results are non-null they were created by Rust code from a valid
                 // vector of results, it's safe to recreate the vector here to ensure the
@@ -149,12 +149,12 @@ impl Default for MementoResult {
 ///
 ///
 #[no_mangle]
-pub extern "C" fn memento_result_fetch(path: *const c_char, from: u64, until: u64) -> *mut MementoResult {
+pub extern "C" fn memento_result_fetch(path: *const c_char, from: i64, until: i64) -> *mut MementoResult {
     assert!(!path.is_null(), "memento_result_fetch: unexpected null pointer");
     Box::into_raw(Box::new(_memento_result_fetch(path, from, until)))
 }
 
-fn _memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoResult {
+fn _memento_result_fetch(path: *const c_char, from: i64, until: i64) -> MementoResult {
     let c_str = unsafe { CStr::from_ptr(path) };
     let wsp = match c_str.to_str() {
         Ok(v) => v,
@@ -163,13 +163,13 @@ fn _memento_result_fetch(path: *const c_char, from: u64, until: u64) -> MementoR
 
     let reader = MementoFileReader::default();
     let request = FetchRequest::default()
-        .with_from(Utc.timestamp(from as i64, 0))
-        .with_until(Utc.timestamp(until as i64, 0));
+        .with_from(Utc.timestamp(from, 0))
+        .with_until(Utc.timestamp(until, 0));
 
     match reader.read(wsp, &request) {
         Ok(points) => {
             MementoResult::from_points(points.into_iter().map(|p| MementoPoint::from(p)).collect())
-        },
+        }
         Err(err) => MementoResult::from_error_kind(err.kind()),
     }
 }
