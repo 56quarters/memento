@@ -145,9 +145,21 @@ impl Default for MementoResult {
     }
 }
 
+/// Fetch points contained in a Whisper database file between the
+/// given start and end times (unix timestamps in seconds).
 ///
+/// The returned pointer will never be null. Callers must check the
+/// return value with the `memento_result_is_error` function before
+/// trying to use the array of points associated with it. If the response
+/// was successful, `points` will be a pointer to the start of an array
+/// of points and `size` will be the length of the array. If the response
+/// was unsucessful, `points` will be null and `error` will contain an
+/// error code indicating what went wrong.
 ///
+/// Results must be freed via calling `memento_result_free` for both
+/// successful responses and error responses.
 ///
+/// This method will panic if the given path pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_result_fetch(path: *const c_char, from: i64, until: i64) -> *mut MementoResult {
     assert!(!path.is_null(), "memento_result_fetch: unexpected null pointer");
@@ -174,9 +186,9 @@ fn _memento_result_fetch(path: *const c_char, from: i64, until: i64) -> MementoR
     }
 }
 
-///
-///
-///
+/// Free memory associated with this result and potentially any points
+/// associated with it. This method will panic if given pointer is
+/// null.
 #[no_mangle]
 pub extern "C" fn memento_result_free(res: *mut MementoResult) {
     assert!(!res.is_null(), "memento_result_free: unexpected null pointer");
@@ -187,9 +199,8 @@ pub extern "C" fn memento_result_free(res: *mut MementoResult) {
     unsafe { Box::from_raw(res) };
 }
 
-///
-///
-///
+/// Return true if this result is an error, false otherwise. This
+/// method will panic if the given pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
     assert!(!res.is_null(), "memento_result_is_error: unexpected null pointer");
