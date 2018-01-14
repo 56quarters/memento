@@ -19,12 +19,24 @@ use memmap::{Mmap, Protection};
 
 use memento_core::errors::MementoResult;
 
+// TODO: File locking is at the process level. Do we need to also
+// use a mutex to make sure only a single thread tries to access
+// a particular file at a time? Does this fall outside the scope
+// of this library? Maybe just have a big warning?
+
+/// Lock a file on creation and unlock it on destruction.
+///
+/// Locking can be enabled or disabled via the `enabled` flag when
+/// creating this locker. All errors unlocking a file in the
+/// destructor are ignored.
 struct FileLocker<'a> {
     enabled: bool,
     file: &'a File,
 }
 
 impl<'a> FileLocker<'a> {
+    /// Obtain a read-only lock on the given file (if `enabled` is
+    /// `true`), returning an error if the lock could not be obtained.
     fn lock_shared(enabled: bool, file: &'a File) -> io::Result<FileLocker<'a>> {
         if enabled {
             file.lock_shared()?;
@@ -62,14 +74,6 @@ pub struct MappedFileStream {
     locking: bool,
 }
 
-// TODO: Need to create a trait for this for testing
-
-impl Default for MappedFileStream {
-    fn default() -> Self {
-        Self::new(true)
-    }
-}
-
 impl MappedFileStream {
     pub fn new(locking: bool) -> Self {
         MappedFileStream { locking: locking }
@@ -97,6 +101,12 @@ impl MappedFileStream {
         };
 
         Ok(res)
+    }
+}
+
+impl Default for MappedFileStream {
+    fn default() -> Self {
+        Self::new(true)
     }
 }
 
