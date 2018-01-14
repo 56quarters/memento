@@ -187,7 +187,7 @@ fn _memento_result_fetch(path: *const c_char, from: i64, until: i64) -> MementoR
 }
 
 /// Free memory used by this result and potentially any points associated
-/// with it. This method will panic if given pointer is null.
+/// with it. This method will panic if the given result pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_result_free(res: *mut MementoResult) {
     assert!(!res.is_null(), "memento_result_free: unexpected null pointer");
@@ -199,7 +199,7 @@ pub extern "C" fn memento_result_free(res: *mut MementoResult) {
 }
 
 /// Return true if this result is an error, false otherwise. This
-/// method will panic if the given pointer is null.
+/// method will panic if the given result pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
     assert!(!res.is_null(), "memento_result_is_error: unexpected null pointer");

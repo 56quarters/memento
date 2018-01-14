@@ -52,13 +52,13 @@ MementoResult *memento_result_fetch(const char *path, int64_t from, int64_t unti
 
 /*
  * Free memory used by this result and potentially any points associated
- * with it. This method will panic if given pointer is null.
+ * with it. This method will panic if the given result pointer is null.
  */
 void memento_result_free(MementoResult *res);
 
 /*
  * Return true if this result is an error, false otherwise. This
- * method will panic if the given pointer is null.
+ * method will panic if the given result pointer is null.
  */
 bool memento_result_is_error(const MementoResult *res);
 
