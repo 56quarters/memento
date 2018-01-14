@@ -51,9 +51,8 @@ typedef struct {
 MementoResult *memento_result_fetch(const char *path, int64_t from, int64_t until);
 
 /*
- * Free memory associated with this result and potentially any points
- * associated with it. This method will panic if given pointer is
- * null.
+ * Free memory used by this result and potentially any points associated
+ * with it. This method will panic if given pointer is null.
  */
 void memento_result_free(MementoResult *res);
 
