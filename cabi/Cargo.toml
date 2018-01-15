@@ -9,9 +9,6 @@ authors = ["TSH Labs"]
 chrono = "0.4.0"
 memento = { path = ".." }
 
-[build-dependencies]
-cbindgen = "0.3.3"
-
 [lib]
 name = "memento"
 crate-type = ["cdylib"]

@@ -1,4 +1,4 @@
-/* generated memento header (see cabi/build.rs) */
+/* Generated Memento header */
 
 #ifndef MEMENTO_H_INCLUDED
 #define MEMENTO_H_INCLUDED
@@ -8,28 +8,49 @@
 #include <stdbool.h>
 
 enum MementoErrorCode {
-  NoError = 0,
-  InvalidString = 101,
-  IoError = 1001,
-  ParseEerror = 1002,
-  InvalidTimeRange = 1003,
-  InvalidTimeStart = 1004,
-  InvalidTimeEnd = 1005,
-  NoArchiveAvailable = 1006,
-  CorruptDatabase = 1007,
+    NoError = 0,
+    InvalidString = 101,
+    IoError = 1001,
+    ParseEerror = 1002,
+    InvalidTimeRange = 1003,
+    InvalidTimeStart = 1004,
+    InvalidTimeEnd = 1005,
+    NoArchiveAvailable = 1006,
+    CorruptDatabase = 1007,
 };
 typedef uint32_t MementoErrorCode;
 
 typedef struct {
-  double value;
-  uint32_t timestamp;
+    double value;
+    uint32_t timestamp;
 } MementoPoint;
 
 typedef struct {
-  MementoPoint *points;
-  size_t size;
-  MementoErrorCode error;
-} MementoResult;
+    MementoPoint *points;
+    size_t size;
+    MementoErrorCode error;
+} MementoPointsResult;
+
+/*
+ *
+ *
+ *
+ */
+void memento_header_fetch(const char *path);
+
+/*
+ *
+ *
+ *
+ */
+void memento_header_free(const char *path);
+
+/*
+ *
+ *
+ *
+ */
+void memento_header_is_error(const char *path);
 
 /*
  * Fetch points contained in a Whisper database file between the
@@ -48,18 +69,18 @@ typedef struct {
  *
  * This method will panic if the given path pointer is null.
  */
-MementoResult *memento_result_fetch(const char *path, int64_t from, int64_t until);
+MementoPointsResult *memento_points_fetch(const char *path, int64_t from, int64_t until);
 
 /*
  * Free memory used by this result and potentially any points associated
  * with it. This method will panic if the given result pointer is null.
  */
-void memento_result_free(MementoResult *res);
+void memento_points_free(MementoPointsResult *res);
 
 /*
  * Return true if this result is an error, false otherwise. This
  * method will panic if the given result pointer is null.
  */
-bool memento_result_is_error(const MementoResult *res);
+bool memento_points_is_error(const MementoPointsResult *res);
 
 #endif /* MEMENTO_H_INCLUDED */

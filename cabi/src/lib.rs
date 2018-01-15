@@ -20,7 +20,10 @@ use std::os::raw::c_char;
 use chrono::{TimeZone, Utc};
 use memento::{FetchRequest, MementoFileReader};
 use memento::errors::ErrorKind;
-use memento::types::Point;
+use memento::types::{Metadata, Point};
+
+// Just reuse our existing aggreation enum
+pub use memento::types::AggregationType;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -80,16 +83,16 @@ impl From<Point> for MementoPoint {
 
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
-pub struct MementoResult {
+pub struct MementoPointsResult {
     pub points: *mut MementoPoint,
     pub size: usize,
     pub error: MementoErrorCode,
 }
 
-impl MementoResult {
-    pub fn from_points(mut res: Vec<MementoPoint>) -> MementoResult {
+impl MementoPointsResult {
+    pub fn from_points(mut res: Vec<MementoPoint>) -> Self {
         res.shrink_to_fit();
-        let out = MementoResult {
+        let out = MementoPointsResult {
             error: MementoErrorCode::NoError,
             points: (&mut res).as_mut_ptr(),
             size: res.len(),
@@ -98,16 +101,16 @@ impl MementoResult {
         out
     }
 
-    pub fn from_error_code(err: MementoErrorCode) -> MementoResult {
-        MementoResult {
+    pub fn from_error_code(err: MementoErrorCode) -> Self {
+        MementoPointsResult {
             error: err,
             points: ptr::null_mut(),
             size: 0,
         }
     }
 
-    pub fn from_error_kind(err: ErrorKind) -> MementoResult {
-        MementoResult {
+    pub fn from_error_kind(err: ErrorKind) -> Self {
+        MementoPointsResult {
             error: MementoErrorCode::from(err),
             points: ptr::null_mut(),
             size: 0,
@@ -119,7 +122,7 @@ impl MementoResult {
     }
 }
 
-impl Drop for MementoResult {
+impl Drop for MementoPointsResult {
     fn drop(&mut self) {
         if !self.points.is_null() {
             unsafe {
@@ -133,6 +136,50 @@ impl Drop for MementoResult {
             self.size = 0;
         }
     }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct MementoMetadata {
+    pub aggregation: AggregationType,
+    pub max_retention: u32,
+    pub x_files_factor: f32,
+    pub archive_count: u32,
+}
+
+impl From<Metadata> for MementoMetadata {
+    fn from(meta: Metadata) -> Self {
+        MementoMetadata {
+            aggregation: meta.aggregation(),
+            max_retention: meta.max_retention(),
+            x_files_factor: meta.x_files_factor(),
+            archive_count: meta.archive_count(),
+        }
+    }
+}
+
+///
+///
+///
+#[no_mangle]
+pub extern "C" fn memento_header_fetch(path: *const c_char) {
+    unimplemented!();
+}
+
+///
+///
+///
+#[no_mangle]
+pub extern "C" fn memento_header_is_error(path: *const c_char) {
+    unimplemented!();
+}
+
+///
+///
+///
+#[no_mangle]
+pub extern "C" fn memento_header_free(path: *const c_char) {
+    unimplemented!();
 }
 
 /// Fetch points contained in a Whisper database file between the
@@ -151,16 +198,23 @@ impl Drop for MementoResult {
 ///
 /// This method will panic if the given path pointer is null.
 #[no_mangle]
-pub extern "C" fn memento_result_fetch(path: *const c_char, from: i64, until: i64) -> *mut MementoResult {
-    assert!(!path.is_null(), "memento_result_fetch: unexpected null pointer");
-    Box::into_raw(Box::new(_memento_result_fetch(path, from, until)))
+pub extern "C" fn memento_points_fetch(
+    path: *const c_char,
+    from: i64,
+    until: i64,
+) -> *mut MementoPointsResult {
+    assert!(
+        !path.is_null(),
+        "memento_points_fetch: unexpected null pointer"
+    );
+    Box::into_raw(Box::new(_memento_points_fetch(path, from, until)))
 }
 
-fn _memento_result_fetch(path: *const c_char, from: i64, until: i64) -> MementoResult {
+fn _memento_points_fetch(path: *const c_char, from: i64, until: i64) -> MementoPointsResult {
     let c_str = unsafe { CStr::from_ptr(path) };
     let wsp = match c_str.to_str() {
         Ok(v) => v,
-        Err(_) => return MementoResult::from_error_code(MementoErrorCode::InvalidString),
+        Err(_) => return MementoPointsResult::from_error_code(MementoErrorCode::InvalidString),
     };
 
     let reader = MementoFileReader::default();
@@ -169,18 +223,21 @@ fn _memento_result_fetch(path: *const c_char, from: i64, until: i64) -> MementoR
         .with_until(Utc.timestamp(until, 0));
 
     match reader.read(wsp, &request) {
-        Ok(points) => {
-            MementoResult::from_points(points.into_iter().map(|p| MementoPoint::from(p)).collect())
-        }
-        Err(err) => MementoResult::from_error_kind(err.kind()),
+        Ok(points) => MementoPointsResult::from_points(
+            points.into_iter().map(|p| MementoPoint::from(p)).collect(),
+        ),
+        Err(err) => MementoPointsResult::from_error_kind(err.kind()),
     }
 }
 
 /// Free memory used by this result and potentially any points associated
 /// with it. This method will panic if the given result pointer is null.
 #[no_mangle]
-pub extern "C" fn memento_result_free(res: *mut MementoResult) {
-    assert!(!res.is_null(), "memento_result_free: unexpected null pointer");
+pub extern "C" fn memento_points_free(res: *mut MementoPointsResult) {
+    assert!(
+        !res.is_null(),
+        "memento_points_free: unexpected null pointer"
+    );
     // Turn our pointer to a result object back into a Boxed type so it can be dropped.
     // The destructor for our result object will in turn, convert the c-style array
     // (pointer + length) back into a Rust vector so that it can be properly dropped as
@@ -191,7 +248,10 @@ pub extern "C" fn memento_result_free(res: *mut MementoResult) {
 /// Return true if this result is an error, false otherwise. This
 /// method will panic if the given result pointer is null.
 #[no_mangle]
-pub extern "C" fn memento_result_is_error(res: *const MementoResult) -> bool {
-    assert!(!res.is_null(), "memento_result_is_error: unexpected null pointer");
+pub extern "C" fn memento_points_is_error(res: *const MementoPointsResult) -> bool {
+    assert!(
+        !res.is_null(),
+        "memento_points_is_error: unexpected null pointer"
+    );
     unsafe { (*res).is_error() }
 }
