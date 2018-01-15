@@ -135,16 +135,6 @@ impl Drop for MementoResult {
     }
 }
 
-impl Default for MementoResult {
-    fn default() -> Self {
-        MementoResult {
-            error: MementoErrorCode::NoError,
-            points: ptr::null_mut(),
-            size: 0,
-        }
-    }
-}
-
 /// Fetch points contained in a Whisper database file between the
 /// given start and end times (unix timestamps in seconds).
 ///
