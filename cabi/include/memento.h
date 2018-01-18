@@ -7,6 +7,18 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+enum AggregationType {
+    Average = 1,
+    Sum = 2,
+    Last = 3,
+    Max = 4,
+    Min = 5,
+    AvgZero = 6,
+    AbsMax = 7,
+    AbsMin = 8,
+};
+typedef uint32_t AggregationType;
+
 enum MementoErrorCode {
     NoError = 0,
     InvalidString = 101,
@@ -19,6 +31,30 @@ enum MementoErrorCode {
     CorruptDatabase = 1007,
 };
 typedef uint32_t MementoErrorCode;
+
+typedef struct {
+    AggregationType aggregation;
+    uint32_t max_retention;
+    float x_files_factor;
+    uint32_t archive_count;
+} MementoMetadata;
+
+typedef struct {
+    uint32_t offset;
+    uint32_t seconds_per_point;
+    uint32_t num_points;
+} MementoArchiveInfo;
+
+typedef struct {
+    MementoMetadata metadata;
+    MementoArchiveInfo *archives;
+    size_t size;
+} MementoHeader;
+
+typedef struct {
+    MementoHeader *header;
+    MementoErrorCode error;
+} MementoHeaderResult;
 
 typedef struct {
     double value;
@@ -36,21 +72,21 @@ typedef struct {
  *
  *
  */
-void memento_header_fetch(const char *path);
+MementoHeaderResult *memento_header_fetch(const char *path);
 
 /*
  *
  *
  *
  */
-void memento_header_free(const char *path);
+void memento_header_free(MementoHeaderResult *res);
 
 /*
  *
  *
  *
  */
-void memento_header_is_error(const char *path);
+bool memento_header_is_error(const MementoHeaderResult *res);
 
 /*
  * Fetch points contained in a Whisper database file between the

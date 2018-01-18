@@ -6,3 +6,7 @@ include_guard = "MEMENTO_H_INCLUDED"
 line_length = 100
 tab_width = 4
 language = "C"
+
+[parse]
+parse_deps = true
+exclude = ["chrono", "fs2", "nom", "byteorder", "memmap"]
