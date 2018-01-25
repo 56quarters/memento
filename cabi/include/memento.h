@@ -23,7 +23,7 @@ enum MementoErrorCode {
     NoError = 0,
     InvalidString = 101,
     IoError = 1001,
-    ParseEerror = 1002,
+    ParseError = 1002,
     InvalidTimeRange = 1003,
     InvalidTimeStart = 1004,
     InvalidTimeEnd = 1005,
