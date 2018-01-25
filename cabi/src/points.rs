@@ -11,15 +11,12 @@
 use std::mem;
 use std::ptr;
 use std::ffi::CStr;
-use std::fmt;
 use std::os::raw::c_char;
 use chrono::{TimeZone, Utc};
 use memento::{FetchRequest, MementoFileReader};
 use memento::errors::ErrorKind;
 use memento::types::Point;
 use common::MementoErrorCode;
-
-// TODO: impl of Display for error code?
 
 #[repr(C)]
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -86,12 +83,6 @@ impl Drop for MementoPointsResult {
                 Vec::from_raw_parts(self.points as *mut MementoPoint, self.size, self.size);
             }
         }
-    }
-}
-
-impl fmt::Display for MementoPointsResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        unimplemented!();
     }
 }
 
