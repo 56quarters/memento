@@ -3,7 +3,10 @@ build: include/memento.h
 include/memento.h:
 	RUSTUP_TOOLCHAIN=nightly cbindgen --config cbindgen.toml --output $@
 
-ctest: include/memento.h c-tests/main.c
+rust:
+	RUSTUP_TOOLCHAIN=nightly cargo build
+
+ctest: rust include/memento.h c-tests/main.c
 	$(CC) -Wall -pedantic -Iinclude -Ltarget/debug -lmemento -o target/$@ c-tests/main.c
 	LD_LIBRARY_PATH=target/debug ./target/ctest
 
@@ -14,3 +17,4 @@ clean:
 	rm -f target/ctest include/memento.h
 
 .PHONY: include/memento.h
+.PHONY: rust
