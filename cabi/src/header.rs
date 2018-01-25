@@ -79,6 +79,17 @@ impl From<Header> for MementoHeader {
     }
 }
 
+impl Drop for MementoHeader {
+    fn drop(&mut self) {
+        if !self.archives.is_null() {
+            unsafe {
+                // Convert back into a Rust type to free the memory
+                Vec::from_raw_parts(self.archives as *mut MementoArchiveInfo, self.size, self.size);
+            }
+        }
+    }
+}
+
 #[repr(C)]
 pub struct MementoHeaderResult {
     pub header: *mut MementoHeader,
@@ -116,8 +127,7 @@ impl Drop for MementoHeaderResult {
     fn drop(&mut self) {
         if !self.header.is_null() {
             unsafe {
-                // If this is non-null it must have been created by Rust code, it's
-                // safe to recreate the box here to ensure that the memory is reclaimed.
+                // Convert back into a Rust type to free the memory
                 Box::from_raw(self.header);
             }
         }

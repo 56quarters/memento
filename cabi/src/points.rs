@@ -11,6 +11,7 @@
 use std::mem;
 use std::ptr;
 use std::ffi::CStr;
+use std::fmt;
 use std::os::raw::c_char;
 use chrono::{TimeZone, Utc};
 use memento::{FetchRequest, MementoFileReader};
@@ -81,12 +82,16 @@ impl Drop for MementoPointsResult {
     fn drop(&mut self) {
         if !self.points.is_null() {
             unsafe {
-                // If our results are non-null they were created by Rust code from a valid
-                // vector of results, it's safe to recreate the vector here to ensure the
-                // memory is reclaimed.
+                // Convert back into a Rust type to free the memory
                 Vec::from_raw_parts(self.points as *mut MementoPoint, self.size, self.size);
             }
         }
+    }
+}
+
+impl fmt::Display for MementoPointsResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        unimplemented!();
     }
 }
 
