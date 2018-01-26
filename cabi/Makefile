@@ -16,5 +16,4 @@ setup:
 clean:
 	rm -f target/ctest include/memento.h
 
-.PHONY: include/memento.h
-.PHONY: rust
+.PHONY: include/memento.h rust
