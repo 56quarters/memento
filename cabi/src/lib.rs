@@ -21,7 +21,7 @@ mod points;
 pub use memento::types::AggregationType;
 
 pub use common::MementoErrorCode;
-pub use header::{MementoMetadata, MementoArchiveInfo, MementoHeader, MementoHeaderResult,
-                 memento_header_fetch, memento_header_is_error, memento_header_free};
-pub use points::{MementoPoint, MementoPointsResult, memento_points_fetch,
-                 memento_points_is_error, memento_points_free};
+pub use header::{memento_header_fetch, memento_header_free, memento_header_is_error,
+                 MementoArchiveInfo, MementoHeader, MementoHeaderResult, MementoMetadata};
+pub use points::{memento_points_fetch, memento_points_free, memento_points_is_error, MementoPoint,
+                 MementoPointsResult};

@@ -64,7 +64,9 @@ pub struct MementoHeader {
 impl From<Header> for MementoHeader {
     fn from(header: Header) -> Self {
         let meta = MementoMetadata::from(header.metadata().clone());
-        let mut archives: Vec<MementoArchiveInfo> = header.archive_info().iter()
+        let mut archives: Vec<MementoArchiveInfo> = header
+            .archive_info()
+            .iter()
             .map(|i| MementoArchiveInfo::from(i.clone()))
             .collect();
 
@@ -84,7 +86,11 @@ impl Drop for MementoHeader {
         if !self.archives.is_null() {
             unsafe {
                 // Convert back into a Rust type to free the memory
-                Vec::from_raw_parts(self.archives as *mut MementoArchiveInfo, self.size, self.size);
+                Vec::from_raw_parts(
+                    self.archives as *mut MementoArchiveInfo,
+                    self.size,
+                    self.size,
+                );
             }
         }
     }
