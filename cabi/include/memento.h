@@ -68,23 +68,30 @@ typedef struct {
 } MementoPointsResult;
 
 /*
+ * Fetch the header of a Whisper database file.
  *
+ * The returned pointer will never be null. Callers must check the return
+ * values with the `memento_header_is_error` function before trying to use
+ * the pointer to the header contained in the result object. If the response
+ * was unsuccessful, `header` will be null and `error` will contain an error
+ * code indicating what went wrong.
  *
+ * The result must be freed by calling `memento_header_free` for both
+ * successful responses and error responses.
  *
+ * This method will panic if the given path pointer is null.
  */
 MementoHeaderResult *memento_header_fetch(const char *path);
 
 /*
- *
- *
- *
+ * Free memory used by this result and any header associated with it.
+ * This method will panic if the given result pointer is null.
  */
 void memento_header_free(MementoHeaderResult *res);
 
 /*
- *
- *
- *
+ * Return true if this result is an error, false otherwise. This
+ * method will panic if the given result pointer is null.
  */
 bool memento_header_is_error(const MementoHeaderResult *res);
 
@@ -100,7 +107,7 @@ bool memento_header_is_error(const MementoHeaderResult *res);
  * was unsucessful, `points` will be null and `error` will contain an
  * error code indicating what went wrong.
  *
- * Results must be freed via calling `memento_result_free` for both
+ * The result must be freed by calling `memento_points_free` for both
  * successful responses and error responses.
  *
  * This method will panic if the given path pointer is null.

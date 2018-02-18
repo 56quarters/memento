@@ -97,7 +97,7 @@ impl Drop for MementoPointsResult {
 /// was unsucessful, `points` will be null and `error` will contain an
 /// error code indicating what went wrong.
 ///
-/// Results must be freed via calling `memento_result_free` for both
+/// The result must be freed by calling `memento_points_free` for both
 /// successful responses and error responses.
 ///
 /// This method will panic if the given path pointer is null.

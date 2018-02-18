@@ -140,9 +140,18 @@ impl Drop for MementoHeaderResult {
     }
 }
 
+/// Fetch the header of a Whisper database file.
 ///
+/// The returned pointer will never be null. Callers must check the return
+/// values with the `memento_header_is_error` function before trying to use
+/// the pointer to the header contained in the result object. If the response
+/// was unsuccessful, `header` will be null and `error` will contain an error
+/// code indicating what went wrong.
 ///
+/// The result must be freed by calling `memento_header_free` for both
+/// successful responses and error responses.
 ///
+/// This method will panic if the given path pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_header_fetch(path: *const c_char) -> *mut MementoHeaderResult {
     assert!(
@@ -167,9 +176,8 @@ fn _memento_header_fetch(path: *const c_char) -> MementoHeaderResult {
     }
 }
 
-///
-///
-///
+/// Return true if this result is an error, false otherwise. This
+/// method will panic if the given result pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_header_is_error(res: *const MementoHeaderResult) -> bool {
     assert!(
@@ -180,9 +188,8 @@ pub extern "C" fn memento_header_is_error(res: *const MementoHeaderResult) -> bo
     unsafe { (*res).is_error() }
 }
 
-///
-///
-///
+/// Free memory used by this result and any header associated with it.
+/// This method will panic if the given result pointer is null.
 #[no_mangle]
 pub extern "C" fn memento_header_free(res: *mut MementoHeaderResult) {
     assert!(
