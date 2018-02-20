@@ -2,6 +2,13 @@
 name = "memento-core"
 version = "0.1.0"
 authors = ["TSH Labs"]
+description = "A Whisper implementation in Rust - Low-level interface"
+homepage = "https://github.com/tshlabs/memento"
+documentation = "https://docs.rs/memento/"
+repository = "https://github.com/tshlabs/memento.git"
+readme = "README.md"
+license = "Apache-2.0/MIT"
+keywords = ["whisper", "graphite", "carbon", "metrics"]
 
 [dependencies]
 byteorder = "1.1.0"
