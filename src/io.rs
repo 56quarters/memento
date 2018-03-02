@@ -79,11 +79,6 @@ impl MappedFileStream {
         MappedFileStream { locking: locking }
     }
 
-    pub fn with_locking(&mut self, locking: bool) -> &mut Self {
-        self.locking = locking;
-        self
-    }
-
     pub fn run_immutable<P, F, T>(&self, path: P, consumer: F) -> MementoResult<T>
     where
         P: AsRef<Path>,
