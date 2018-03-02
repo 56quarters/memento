@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 
-
 import os
-import sys
+import timeit
 
 built_module = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build', 'lib')
-sys.path.insert(0, built_module)
-print("Import path:", sys.path)
 
+print('Memento header read', timeit.timeit(
+    stmt='memento.info("../tests/count_01.wsp")',
+    setup="""
+import sys
+sys.path.insert(0, '{include}')
 import memento
+    """.format(include=built_module)
+))
 
-
-print(memento.info('../tests/count_01.wsp'))
+print('Whisper header read', timeit.timeit(
+    stmt='whisper.info("../tests/count_01.wsp")',
+    setup="import whisper"
+))
