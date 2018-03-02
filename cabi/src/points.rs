@@ -111,10 +111,55 @@ pub extern "C" fn memento_points_fetch(
         !path.is_null(),
         "memento_points_fetch: unexpected null pointer"
     );
-    Box::into_raw(Box::new(_memento_points_fetch(path, from, until)))
+    Box::into_raw(Box::new(_memento_points_fetch(
+        path,
+        from,
+        Some(until),
+        None,
+    )))
 }
 
-fn _memento_points_fetch(path: *const c_char, from: i64, until: i64) -> MementoPointsResult {
+/// Fetch points contained in a Whisper database file between the
+/// given start and end times (unix timestamps in seconds) using the
+/// given `now` time to determine if the request can be satisfied.
+///
+/// The returned pointer will never be null. Callers must check the
+/// return value with the `memento_result_is_error` function before
+/// trying to use the array of points associated with it. If the response
+/// was successful, `points` will be a pointer to the start of an array
+/// of points and `size` will be the length of the array. If the response
+/// was unsucessful, `points` will be null and `error` will contain an
+/// error code indicating what went wrong.
+///
+/// The result must be freed by calling `memento_points_free` for both
+/// successful responses and error responses.
+///
+/// This method will panic if the given path pointer is null.
+#[no_mangle]
+pub extern "C" fn memento_points_fetch_full(
+    path: *const c_char,
+    from: i64,
+    until: i64,
+    now: i64,
+) -> *mut MementoPointsResult {
+    assert!(
+        !path.is_null(),
+        "memento_points_fetch_full: unexpected null pointer"
+    );
+    Box::into_raw(Box::new(_memento_points_fetch(
+        path,
+        from,
+        Some(until),
+        Some(now),
+    )))
+}
+
+fn _memento_points_fetch(
+    path: *const c_char,
+    from: i64,
+    until: Option<i64>,
+    now: Option<i64>,
+) -> MementoPointsResult {
     let c_str = unsafe { CStr::from_ptr(path) };
     let wsp = match c_str.to_str() {
         Ok(v) => v,
@@ -122,9 +167,17 @@ fn _memento_points_fetch(path: *const c_char, from: i64, until: i64) -> MementoP
     };
 
     let reader = MementoFileReader::default();
-    let request = FetchRequest::default()
-        .with_from(Utc.timestamp(from, 0))
-        .with_until(Utc.timestamp(until, 0));
+    let until_ts = if let Some(v) = until {
+        Utc.timestamp(v, 0)
+    } else {
+        Utc::now()
+    };
+    let now_ts = if let Some(v) = now {
+        Utc.timestamp(v, 0)
+    } else {
+        Utc::now()
+    };
+    let request = FetchRequest::new(Utc.timestamp(from, 0), until_ts, now_ts);
 
     match reader.read(wsp, &request) {
         Ok(points) => MementoPointsResult::from_points(

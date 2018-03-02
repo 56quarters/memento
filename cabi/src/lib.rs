@@ -23,5 +23,5 @@ pub use memento::types::AggregationType;
 pub use common::MementoErrorCode;
 pub use header::{memento_header_fetch, memento_header_free, memento_header_is_error,
                  MementoArchiveInfo, MementoHeader, MementoHeaderResult, MementoMetadata};
-pub use points::{memento_points_fetch, memento_points_free, memento_points_is_error, MementoPoint,
-                 MementoPointsResult};
+pub use points::{memento_points_fetch, memento_points_fetch_full, memento_points_free,
+                 memento_points_is_error, MementoPoint, MementoPointsResult};
