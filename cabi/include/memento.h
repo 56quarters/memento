@@ -115,6 +115,29 @@ bool memento_header_is_error(const MementoHeaderResult *res);
 MementoPointsResult *memento_points_fetch(const char *path, int64_t from, int64_t until);
 
 /*
+ * Fetch points contained in a Whisper database file between the
+ * given start and end times (unix timestamps in seconds) using the
+ * given `now` time to determine if the request can be satisfied.
+ *
+ * The returned pointer will never be null. Callers must check the
+ * return value with the `memento_result_is_error` function before
+ * trying to use the array of points associated with it. If the response
+ * was successful, `points` will be a pointer to the start of an array
+ * of points and `size` will be the length of the array. If the response
+ * was unsucessful, `points` will be null and `error` will contain an
+ * error code indicating what went wrong.
+ *
+ * The result must be freed by calling `memento_points_free` for both
+ * successful responses and error responses.
+ *
+ * This method will panic if the given path pointer is null.
+ */
+MementoPointsResult *memento_points_fetch_full(const char *path,
+                                               int64_t from,
+                                               int64_t until,
+                                               int64_t now);
+
+/*
  * Free memory used by this result and potentially any points associated
  * with it. This method will panic if the given result pointer is null.
  */
