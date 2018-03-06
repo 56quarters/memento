@@ -180,9 +180,12 @@ fn _memento_points_fetch(
     let request = FetchRequest::new(Utc.timestamp(from, 0), until_ts, now_ts);
 
     match reader.read(wsp, &request) {
-        Ok(points) => MementoPointsResult::from_points(
-            points.into_iter().map(|p| MementoPoint::from(p)).collect(),
-        ),
+        Ok(response) => {
+            let points: Vec<Point> = response.into();
+            MementoPointsResult::from_points(
+                points.into_iter().map(|p| MementoPoint::from(p)).collect(),
+            )
+        },
         Err(err) => MementoPointsResult::from_error_kind(err.kind()),
     }
 }

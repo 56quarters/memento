@@ -129,6 +129,44 @@ impl Default for FetchRequest {
     }
 }
 
+///
+///
+///
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct FetchResponse {
+    archive: ArchiveInfo,
+    points: Vec<Point>,
+}
+
+impl FetchResponse {
+    pub fn new(archive: ArchiveInfo, points: Vec<Point>) -> FetchResponse {
+        FetchResponse {
+            archive: archive,
+            points: points,
+        }
+    }
+
+    pub fn archive(&self) -> &ArchiveInfo {
+        &self.archive
+    }
+
+    pub fn points(&self) -> &[Point] {
+        &self.points
+    }
+}
+
+impl Into<(ArchiveInfo, Vec<Point>)> for FetchResponse {
+    fn into(self) -> (ArchiveInfo, Vec<Point>) {
+        (self.archive, self.points)
+    }
+}
+
+impl Into<Vec<Point>> for FetchResponse {
+    fn into(self) -> Vec<Point> {
+        self.points
+    }
+}
+
 /// Read a Whisper database file using memory mapping and locking.
 ///
 /// # Locking
@@ -201,7 +239,7 @@ impl MementoFileReader {
     /// the database file (such as permission errors), if the file was
     /// malformed, or if the request could not be fulfilled by this
     /// database file.
-    pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<Vec<Point>>
+    pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<FetchResponse>
     where
         P: AsRef<Path>,
     {
@@ -299,7 +337,7 @@ impl<'a> MementoReader<'a> {
         Ok(db)
     }
 
-    fn read(&self, req: &FetchRequest) -> MementoResult<Vec<Point>> {
+    fn read(&self, req: &FetchRequest) -> MementoResult<FetchResponse> {
         let header = memento_parse_header(self.bytes).to_full_result()?;
         // validate the that requested ranges are something that we can
         // satisfy with this database and coerce them if required. For
@@ -312,7 +350,12 @@ impl<'a> MementoReader<'a> {
         // the requested ranges.
         let archive_bytes = self.slice_for_archive(archive_info)?;
         let archive = memento_parse_archive(archive_bytes, archive_info).to_full_result()?;
-        Ok(Self::points_for_request(&archive, &req))
+        let points = Self::points_for_request(&archive, &req);
+
+        // Include a copy of the archive info along with the points returned
+        // so that consumers can tell the resolution of the data without
+        // having to introspect the points.
+        Ok(FetchResponse::new(archive_info.clone(), points))
     }
 }
 
@@ -475,7 +518,7 @@ mod tests {
         let res = reader.read(&req);
 
         assert!(res.is_ok());
-        assert!(res.unwrap().is_empty());
+        assert!(res.unwrap().points().is_empty());
     }
 
     #[test]
@@ -507,7 +550,7 @@ mod tests {
         let res = reader.read(&req);
 
         assert!(res.is_ok());
-        assert!(res.unwrap().is_empty());
+        assert!(res.unwrap().points().is_empty());
     }
 
     #[test]
@@ -540,14 +583,14 @@ mod tests {
 
         assert!(res.is_ok());
 
-        let points = res.unwrap();
-        assert_eq!(2, points.len());
+        let response = res.unwrap();
+        assert_eq!(2, response.points().len());
         assert_eq!(
             &vec![
                 Point::new(until.timestamp() as u32 - 60, 7.0),
                 Point::new(until.timestamp() as u32, 7.0),
-            ],
-            &points
+            ] as &[Point],
+            response.points()
         );
     }
 
@@ -581,14 +624,14 @@ mod tests {
 
         assert!(res.is_ok());
 
-        let points = res.unwrap();
-        assert_eq!(2, points.len());
+        let response = res.unwrap();
+        assert_eq!(2, response.points().len());
         assert_eq!(
             &vec![
                 Point::new(until.timestamp() as u32 - 300, 7.0),
                 Point::new(until.timestamp() as u32, 7.0),
-            ],
-            &points
+            ] as &[Point],
+            response.points()
         );
     }
 
