@@ -5,7 +5,7 @@ extern crate test;
 
 use chrono::{TimeZone, Utc};
 use test::Bencher;
-use memento::{MappedFileStream, MementoFileReader, FetchRequest};
+use memento::{FetchRequest, MappedFileStream, MementoFileReader};
 
 #[bench]
 fn benchmark_mapped_file_stream_with_locking(b: &mut Bencher) {
