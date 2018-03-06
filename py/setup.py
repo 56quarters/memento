@@ -12,7 +12,7 @@ def build_native(spec):
 
     spec.add_cffi_module(
         module_path='memento._native',
-        dylib=lambda: build.find_dylib('memento', in_path='target/release'),
+        dylib=lambda: build.find_dylib('memento_cabi', in_path='target/release'),
         header_filename=lambda: build.find_header('memento.h', in_path='include')
     )
 
