@@ -167,16 +167,8 @@ fn _memento_points_fetch(
     };
 
     let reader = MementoFileReader::default();
-    let until_ts = if let Some(v) = until {
-        Utc.timestamp(v, 0)
-    } else {
-        Utc::now()
-    };
-    let now_ts = if let Some(v) = now {
-        Utc.timestamp(v, 0)
-    } else {
-        Utc::now()
-    };
+    let until_ts = until.map(|v| Utc.timestamp(v, 0)).unwrap_or_else(Utc::now);
+    let now_ts = now.map(|v| Utc.timestamp(v, 0)).unwrap_or_else(Utc::now);
     let request = FetchRequest::new(Utc.timestamp(from, 0), until_ts, now_ts);
 
     match reader.read(wsp, &request) {
