@@ -2,3 +2,6 @@ target
 Cargo.lock
 .env
 .idea
+perf.data
+perf.data.old
+flame.svg
