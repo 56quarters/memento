@@ -56,5 +56,20 @@ def _read_header(header):
     return info
 
 
-def fetch(path, from_time, until_time=None, now=None):
+def fetch(path, from_, until=None, now=None):
+    path = path.encode('utf-8')
+    if now is not None:
+        res = lib.memento_points_fetch_full(path, from_, until, now)
+    else:
+        res = lib.memento_points_fetch(path, from_, until)
+
+    try:
+        if lib.memento_points_is_error(res):
+            raise RuntimeError("Failed to read points, Error code {}".format(res.error))
+        return _fetch_points(res.points)
+    finally:
+        lib.memento_points_free(res)
+
+
+def _fetch_points(points):
     pass
