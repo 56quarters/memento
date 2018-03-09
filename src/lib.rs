@@ -19,5 +19,5 @@ mod io;
 
 pub use memento_core::types;
 pub use memento_core::errors;
-pub use read::{FetchRequest, MementoFileReader};
-pub use io::MappedFileStream;
+pub use io::{SeekRead, SliceReader, SliceReaderDirect, SliceReaderMapped};
+pub use read::{DefaultMementoParser, FetchRequest, FetchResponse, MementoParser, MementoFileReader};

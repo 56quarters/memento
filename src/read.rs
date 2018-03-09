@@ -10,18 +10,23 @@
 
 //!
 
+use std::fmt::Debug;
+use std::fs::File;
 use std::path::Path;
 
 use chrono::{DateTime, Duration, TimeZone, Utc};
 
-use io::MappedFileStream;
-use memento_core::parser::{memento_parse_archive, memento_parse_database, memento_parse_header};
-use memento_core::types::{Archive, ArchiveInfo, Header, MementoDatabase, Point};
+use memmap::Mmap;
+
+use io::{SliceReader, SliceReaderDirect, SliceReaderMapped};
+use memento_core::parser::{memento_parse_archive, memento_parse_database,
+                           memento_parse_metadata, memento_parse_archive_infos};
+use memento_core::types::{Archive, ArchiveInfo, Header, MementoDatabase, Metadata, Point};
 use memento_core::errors::{ErrorKind, MementoError, MementoResult};
 
 /// Request describing a time range to fetch values for.
 ///
-/// All `DateTime` instances are converted to UTC.
+/// All [DateTime](chrono::DateTime) instances are converted to UTC.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FetchRequest {
     from: DateTime<Utc>,
@@ -167,33 +172,95 @@ impl Into<Vec<Point>> for FetchResponse {
     }
 }
 
-/// Read a Whisper database file using memory mapping and locking.
 ///
-/// # Locking
 ///
-/// A shared (read only) lock is acquired before attempting to read
-/// each database file. If the lock cannot be obtained an error will
-/// be returned from the relevant method.
 ///
-/// # Memory Mapping
-///
-/// Files are read using memory mapping. This typically results in
-/// faster performance than doing multiple individual reads of the
-/// file when fetching data. For small reads (such as only reading
-/// the header of a file) it is typically slower than doing regular
-/// reads of the file.
-///
-/// However, memory mapping results in vastly simpler code for parsing
-/// database files.
-#[derive(Debug, Clone)]
-pub struct MementoFileReader {
-    mapper: MappedFileStream,
+pub trait MementoParser {
+    ///
+    ///
+    ///
+    fn read_header(&mut self) -> MementoResult<Header>;
+
+    ///
+    ///
+    ///
+    fn read_database(&mut self) -> MementoResult<MementoDatabase>;
+
+    ///
+    ///
+    ///
+    fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse>;
 }
 
+///
+///
+///
+#[derive(Debug)]
+pub struct DefaultMementoParser<R> where R: SliceReader + Debug + 'static {
+    reader: R,
+}
+
+impl<R> DefaultMementoParser<R> where R: SliceReader + Debug {
+    pub fn new(reader: R) -> Self {
+        DefaultMementoParser { reader: reader }
+    }
+}
+
+impl<R> MementoParser for DefaultMementoParser<R> where R: SliceReader + Debug {
+    fn read_header(&mut self) -> MementoResult<Header> {
+        let metadata_sz = Metadata::storage() as u64;
+        let metadata = self.reader.consume(0, metadata_sz, |v| {
+            Ok(memento_parse_metadata(v).to_full_result()?)
+        })?;
+
+        let infos_sz = metadata.archive_count() as u64 * ArchiveInfo::storage() as u64;
+        let infos = self.reader.consume(metadata_sz, infos_sz, |v| {
+            Ok(memento_parse_archive_infos(v, &metadata).to_full_result()?)
+        })?;
+
+        Ok(Header::new(metadata, infos))
+    }
+
+    fn read_database(&mut self) -> MementoResult<MementoDatabase> {
+        self.reader.consume_all(|v| {
+            Ok(memento_parse_database(v).to_full_result()?)
+        })
+    }
+
+    fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse> {
+        let header = self.read_header()?;
+        let range = DateRangeSearch::new();
+        range.search(&mut self.reader, &header, req)
+    }
+}
+
+fn new_direct_reader<P>(path: P) -> MementoResult<SliceReaderDirect>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(path)?;
+    Ok(SliceReaderDirect::new(file))
+}
+
+fn new_mapped_reader<P>(path: P) -> MementoResult<SliceReaderMapped>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(path)?;
+    let map = unsafe { Mmap::map(&file)? };
+    Ok(SliceReaderMapped::new(map))
+}
+
+///
+///
+///
+///
+#[derive(Debug)]
+pub struct MementoFileReader;
+
 impl MementoFileReader {
-    /// Create a new file reader using the given file mapper.
-    pub fn new(mapper: MappedFileStream) -> Self {
-        MementoFileReader { mapper: mapper }
+    pub fn new() -> Self {
+        MementoFileReader
     }
 
     /// Read only the header of a whisper database file.
@@ -205,12 +272,11 @@ impl MementoFileReader {
     /// malformed.
     pub fn read_header<P>(&self, path: P) -> MementoResult<Header>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path>
     {
-        self.mapper.run_immutable(path, |bytes| {
-            let reader = MementoReader::new(bytes);
-            reader.read_header()
-        })
+        let reader = new_direct_reader(path)?;
+        let mut parser = DefaultMementoParser::new(reader);
+        parser.read_header()
     }
 
     /// Read and entire whisper database file (header + data).
@@ -222,12 +288,11 @@ impl MementoFileReader {
     /// malformed.
     pub fn read_database<P>(&self, path: P) -> MementoResult<MementoDatabase>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path>
     {
-        self.mapper.run_immutable(path, |bytes| {
-            let reader = MementoReader::new(bytes);
-            reader.read_database()
-        })
+        let reader = new_mapped_reader(path)?;
+        let mut parser = DefaultMementoParser::new(reader);
+        parser.read_database()
     }
 
     /// Read a portion of a whisper database file based on the given
@@ -241,39 +306,28 @@ impl MementoFileReader {
     /// database file.
     pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<FetchResponse>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path>
     {
-        self.mapper.run_immutable(path, |bytes| {
-            let reader = MementoReader::new(bytes);
-            reader.read(req)
-        })
+        let reader = new_mapped_reader(path)?;
+        let mut parser = DefaultMementoParser::new(reader);
+        parser.read_range(req)
     }
 }
 
-impl Default for MementoFileReader {
-    fn default() -> Self {
-        MementoFileReader::new(MappedFileStream::default())
-    }
-}
-
-/// Logic for parsing a stream of bytes into portions of a Whisper
-/// database file.
+///
+///
+///
 #[derive(Debug)]
-struct MementoReader<'a> {
-    bytes: &'a [u8],
-}
+struct DateRangeSearch;
 
-impl<'a> MementoReader<'a> {
-    fn new(bytes: &'a [u8]) -> MementoReader<'a> {
-        MementoReader { bytes: bytes }
+impl DateRangeSearch {
+    fn new() -> Self {
+        DateRangeSearch
     }
 
     /// Find the archive in this file that is capable of fulfilling the
     /// given request or return an error if there is no archive that can
-    fn find_archive<'b, 'c>(
-        req: &'b FetchRequest,
-        header: &'c Header,
-    ) -> MementoResult<&'c ArchiveInfo> {
+    fn find_archive<'b, 'c>(req: &'b FetchRequest, header: &'c Header) -> MementoResult<&'c ArchiveInfo> {
         let archives = header.archive_info();
         let required_retention = req.retention();
 
@@ -290,31 +344,6 @@ impl<'a> MementoReader<'a> {
         )))
     }
 
-    /// Get the byte range associated with the given archive or an error
-    /// if that range isn't part of this file (indicating a malformed
-    /// database file).
-    fn slice_for_archive(&self, archive: &ArchiveInfo) -> MementoResult<&[u8]> {
-        let offset = archive.offset() as usize;
-        // These two conditions should never happen but it's nice to handle
-        // a corrupted file gracefully here instead of just panicking. This
-        // avoids crashing the calling code.
-        if offset > self.bytes.len() {
-            return Err(MementoError::from((
-                ErrorKind::CorruptDatabase,
-                "offset exceeds data size",
-            )));
-        }
-
-        if offset + archive.archive_size() > self.bytes.len() {
-            return Err(MementoError::from((
-                ErrorKind::CorruptDatabase,
-                "archive exceeds data size",
-            )));
-        }
-
-        Ok(&self.bytes[offset..offset + archive.archive_size()])
-    }
-
     /// Get the subset of points in the given archive required for the
     /// given request.
     fn points_for_request(archive: &Archive, request: &FetchRequest) -> Vec<Point> {
@@ -327,18 +356,10 @@ impl<'a> MementoReader<'a> {
             .collect()
     }
 
-    fn read_header(&self) -> MementoResult<Header> {
-        let header = memento_parse_header(self.bytes).to_full_result()?;
-        Ok(header)
-    }
-
-    fn read_database(&self) -> MementoResult<MementoDatabase> {
-        let db = memento_parse_database(self.bytes).to_full_result()?;
-        Ok(db)
-    }
-
-    fn read(&self, req: &FetchRequest) -> MementoResult<FetchResponse> {
-        let header = memento_parse_header(self.bytes).to_full_result()?;
+    fn search<R>(&self, reader: &mut R, header: &Header, req: &FetchRequest) -> MementoResult<FetchResponse>
+    where
+        R: SliceReader,
+    {
         // validate the that requested ranges are something that we can
         // satisfy with this database and coerce them if required. For
         // example: bump up the starting range to our earliest range if
@@ -348,13 +369,28 @@ impl<'a> MementoReader<'a> {
         // Get the section of the mmaped file that we should be looking
         // at based on the archive that can actually be used to satisfy
         // the requested ranges.
-        let archive_bytes = self.slice_for_archive(archive_info)?;
-        let archive = memento_parse_archive(archive_bytes, archive_info).to_full_result()?;
-        let points = Self::points_for_request(&archive, &req);
+        let archive_offset = archive_info.offset() as u64;
+        let archive_len = archive_info.archive_size() as u64;
+        let archive = reader.consume(archive_offset, archive_len, |v| {
+            Ok(memento_parse_archive(v, archive_info).to_full_result()?)
+        }).map_err(|e| {
+            // The reader returns an I/O error for invalid seeks or out
+            // of bounds reads. Telling people that we expected X bytes
+            // and got Y bytes isn't super useful so we translate into
+            // something a little nicer here: corrupt DB.
+            match e.kind() {
+                ErrorKind::IoError => MementoError::from((
+                    ErrorKind::CorruptDatabase,
+                    "I/O error reading archive",
+                )),
+                _ => e
+            }
+        })?;
 
+        let points = Self::points_for_request(&archive, &req);
         // Include a copy of the archive info along with the points returned
         // so that consumers can tell the resolution of the data without
-        // having to introspect the points.
+        // having to inspect the points.
         Ok(FetchResponse::new(archive_info.clone(), points))
     }
 }
@@ -367,7 +403,8 @@ mod tests {
     use memento_core::encoder::{memento_encode_archive, memento_encode_header};
     use memento_core::types::{AggregationType, Archive, ArchiveInfo, Header, Metadata, Point};
 
-    use super::{FetchRequest, MementoReader};
+    use io::{SliceReader, SliceReaderMapped};
+    use super::{FetchRequest, DateRangeSearch};
 
     fn get_file_header() -> Header {
         let metadata = Metadata::new(
@@ -424,8 +461,9 @@ mod tests {
         memento_encode_header(&mut buf, &header).unwrap();
         buf.shrink_to_fit();
 
-        let reader = MementoReader::new(&buf);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(buf);
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_err());
         assert_eq!(ErrorKind::NoArchiveAvailable, res.unwrap_err().kind());
@@ -451,8 +489,9 @@ mod tests {
         // The buffer only contains the bytes for the header so the offset
         // of the first archive will violate the first check for the size
         // of the data (making sure it's greater than the offset).
-        let reader = MementoReader::new(&buf);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(buf);
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_err());
         assert_eq!(ErrorKind::CorruptDatabase, res.unwrap_err().kind());
@@ -482,8 +521,9 @@ mod tests {
         // The buffer will contain and entire file but we only give the reader
         // slightly more than just the header here so that we make sure to test
         // the case where the header lies!
-        let reader = MementoReader::new(&buf[0..80]);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(Vec::from(&buf[0..80]));
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_err());
         assert_eq!(ErrorKind::CorruptDatabase, res.unwrap_err().kind());
@@ -514,8 +554,9 @@ mod tests {
         memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = MementoReader::new(&buf);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(buf);
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_ok());
         assert!(res.unwrap().points().is_empty());
@@ -546,8 +587,9 @@ mod tests {
         memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = MementoReader::new(&buf);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(buf);
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_ok());
         assert!(res.unwrap().points().is_empty());
@@ -578,8 +620,9 @@ mod tests {
         memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = MementoReader::new(&buf);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(buf);
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_ok());
 
@@ -619,8 +662,9 @@ mod tests {
         memento_encode_archive(&mut buf, &archive2).unwrap();
         buf.shrink_to_fit();
 
-        let reader = MementoReader::new(&buf);
-        let res = reader.read(&req);
+        let mut reader = SliceReaderMapped::new(buf);
+        let range = DateRangeSearch::new();
+        let res = range.search(&mut reader, &header, &req);
 
         assert!(res.is_ok());
 

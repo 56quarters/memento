@@ -17,7 +17,7 @@ use byteorder::{NetworkEndian, WriteBytesExt};
 use types::{Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point};
 use errors::MementoResult;
 
-fn encode_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
+pub fn memento_encode_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
@@ -27,7 +27,7 @@ where
     writer.write_u32::<NetworkEndian>(meta.archive_count())
 }
 
-fn encode_archive_infos<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()>
+pub fn memento_encode_archive_infos<W>(writer: &mut W, infos: &[ArchiveInfo]) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
@@ -40,7 +40,7 @@ where
     Ok(())
 }
 
-fn encode_point<W>(writer: &mut W, point: &Point) -> io::Result<()>
+pub fn memento_encode_point<W>(writer: &mut W, point: &Point) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
@@ -48,7 +48,7 @@ where
     writer.write_f64::<NetworkEndian>(point.value())
 }
 
-fn encode_data<W>(writer: &mut W, data: &Data) -> io::Result<()>
+pub fn memento_encode_data<W>(writer: &mut W, data: &Data) -> io::Result<()>
 where
     W: WriteBytesExt,
 {
@@ -64,7 +64,7 @@ where
     W: WriteBytesExt,
 {
     for point in archive.points() {
-        encode_point(writer, point)?;
+        memento_encode_point(writer, point)?;
     }
 
     Ok(())
@@ -74,8 +74,8 @@ pub fn memento_encode_header<W>(writer: &mut W, header: &Header) -> MementoResul
 where
     W: WriteBytesExt,
 {
-    encode_metadata(writer, header.metadata())?;
-    Ok(encode_archive_infos(writer, header.archive_info())?)
+    memento_encode_metadata(writer, header.metadata())?;
+    Ok(memento_encode_archive_infos(writer, header.archive_info())?)
 }
 
 pub fn memento_encode_database<W>(writer: &mut W, file: &MementoDatabase) -> MementoResult<()>
@@ -83,7 +83,7 @@ where
     W: WriteBytesExt,
 {
     memento_encode_header(writer, file.header())?;
-    Ok(encode_data(writer, file.data())?)
+    Ok(memento_encode_data(writer, file.data())?)
 }
 
 #[cfg(test)]
@@ -91,11 +91,12 @@ mod tests {
     use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata,
                 Point};
 
-    use super::{encode_archive_infos, encode_data, encode_metadata, encode_point,
-                memento_encode_archive, memento_encode_database, memento_encode_header};
+    use super::{memento_encode_archive_infos, memento_encode_data, memento_encode_metadata,
+                memento_encode_point, memento_encode_archive, memento_encode_database,
+                memento_encode_header};
 
     #[test]
-    fn test_encode_metadata() {
+    fn test_memento_encode_metadata() {
         let metadata = Metadata::new(AggregationType::Max, 31536000, 0.5, 5);
 
         // Python: struct.pack('>LLfL', 4, 31536000, 0.5, 5).hex()
@@ -108,13 +109,13 @@ mod tests {
         ];
 
         let mut buf = vec![];
-        encode_metadata(&mut buf, &metadata).unwrap();
+        memento_encode_metadata(&mut buf, &metadata).unwrap();
 
         assert_eq!(&expected, &buf);
     }
 
     #[test]
-    fn test_encode_archive_infos() {
+    fn test_memento_encode_archive_infos() {
         let info = ArchiveInfo::new(76, 10, 8640);
 
         // Python: struct.pack('>LLL', 76, 10, 8640).hex()
@@ -126,13 +127,13 @@ mod tests {
         ];
 
         let mut buf = vec![];
-        encode_archive_infos(&mut buf, &vec![info]).unwrap();
+        memento_encode_archive_infos(&mut buf, &vec![info]).unwrap();
 
         assert_eq!(&expected, &buf);
     }
 
     #[test]
-    fn test_encode_point() {
+    fn test_memento_encode_point() {
         let point = Point::new(1511396041, 42.0);
 
         // Python: struct.pack('>Ld', 1511396041, 42.0).hex()
@@ -143,13 +144,13 @@ mod tests {
         ];
 
         let mut buf = vec![];
-        encode_point(&mut buf, &point).unwrap();
+        memento_encode_point(&mut buf, &point).unwrap();
 
         assert_eq!(&expected, &buf);
     }
 
     #[test]
-    fn test_encode_data() {
+    fn test_memento_encode_data() {
         let point1 = Point::new(1511396041, 42.0);
         let point2 = Point::new(1511396051, 42.0);
         let archive = Archive::new(vec![point1, point2]);
@@ -168,7 +169,7 @@ mod tests {
         ];
 
         let mut buf = vec![];
-        encode_data(&mut buf, &data).unwrap();
+        memento_encode_data(&mut buf, &data).unwrap();
 
         assert_eq!(&expected, &buf);
     }
