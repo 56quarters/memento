@@ -1,10 +1,8 @@
 #![feature(test)]
-extern crate chrono;
 extern crate memento_cabi;
 extern crate test;
 
-use std::ffi::{CStr, CString};
-use chrono::{TimeZone, Utc};
+use std::ffi::CString;
 use test::Bencher;
 use memento_cabi::{memento_points_fetch_full, memento_points_free, memento_points_is_error,
                    memento_header_fetch, memento_header_free, memento_header_is_error};
