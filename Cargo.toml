@@ -15,5 +15,5 @@ keywords = ["whisper", "graphite", "carbon", "metrics"]
 [dependencies]
 chrono = "0.4.0"
 fs2 = "0.4.2"
-memmap = "0.5.2"
+memmap = "0.6.2"
 memento-core = { path = "core" }
