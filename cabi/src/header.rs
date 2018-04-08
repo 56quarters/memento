@@ -169,7 +169,7 @@ fn _memento_header_fetch(path: *const c_char) -> MementoHeaderResult {
         Err(_) => return MementoHeaderResult::from_error_code(MementoErrorCode::InvalidString),
     };
 
-    let reader = MementoFileReader::default();
+    let reader = MementoFileReader::new();
     match reader.read_header(wsp) {
         Ok(header) => MementoHeaderResult::from_header(MementoHeader::from(header)),
         Err(err) => MementoHeaderResult::from_error_kind(err.kind()),

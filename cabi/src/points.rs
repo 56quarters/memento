@@ -166,7 +166,7 @@ fn _memento_points_fetch(
         Err(_) => return MementoPointsResult::from_error_code(MementoErrorCode::InvalidString),
     };
 
-    let reader = MementoFileReader::default();
+    let reader = MementoFileReader::new();
     let until_ts = until.map(|v| Utc.timestamp(v, 0)).unwrap_or_else(Utc::now);
     let now_ts = now.map(|v| Utc.timestamp(v, 0)).unwrap_or_else(Utc::now);
     let request = FetchRequest::new(Utc.timestamp(from, 0), until_ts, now_ts);
