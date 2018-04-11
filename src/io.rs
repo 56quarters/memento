@@ -38,22 +38,34 @@ impl<T> SeekRead for Cursor<T> where T: AsRef<[u8]> {}
 /// The trait is meant to abstract the differences between direct file I/O and
 /// memory mapped files, allowing callers to choose the implementation with the
 /// best performance for their use case.
+///
+/// Offsets are always absolute and computed relative to the start of the file.
 pub trait SliceReader {
+    /// Consume the entire underlying file, exposed as a slice of bytes.
+    ///
+    /// Implemenations may choose to buffer the entire file in memory before
+    /// exposing it to the consumer. It is up to callers to only invoke this
+    /// method when they are interested in the whole file, not just a portion
+    /// of it.
     fn consume_all<F, T>(&mut self, consumer: F) -> MementoResult<T>
     where
         F: Fn(&[u8]) -> MementoResult<T>;
 
+    /// Consume the entire underlying file, starting from `offset`, exposed as
+    /// a slice of bytes.
     fn consume_from<F, T>(&mut self, offset: u64, consumer: F) -> MementoResult<T>
     where
         F: Fn(&[u8]) -> MementoResult<T>;
 
+    /// Consume a portion of the underlying file, starting from `offset` and
+    /// continuing for `len` bytes, exposed as a slice of bytes.
     fn consume<F, T>(&mut self, offset: u64, len: u64, consumer: F) -> MementoResult<T>
     where
         F: Fn(&[u8]) -> MementoResult<T>;
 }
 
 /// Implementation of a `SliceReader` that expects to operate on a memory mapped
-/// file (something that can be represented as a `&[u8]`.
+/// file (something that can be represented as a `&[u8]`).
 ///
 /// Offsets are always computed relative to the start of the mapping.
 ///
