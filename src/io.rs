@@ -39,7 +39,7 @@ impl<T> SeekRead for Cursor<T> where T: AsRef<[u8]> {}
 /// memory mapped files, allowing callers to choose the implementation with the
 /// best performance for their use case.
 ///
-/// Offsets are always absolute and computed relative to the start of the file.
+/// Offsets are always absolute and computed from the start of the file.
 pub trait SliceReader {
     /// Consume the entire underlying file, exposed as a slice of bytes.
     ///
@@ -67,7 +67,7 @@ pub trait SliceReader {
 /// Implementation of a `SliceReader` that expects to operate on a memory mapped
 /// file (something that can be represented as a `&[u8]`).
 ///
-/// Offsets are always computed relative to the start of the mapping.
+/// Offsets are always absolute and computed from the start of the mapping.
 ///
 /// # Errors
 ///
@@ -144,9 +144,9 @@ impl Debug for SliceReaderMapped {
 /// Implementation of a `SliceReader` that expects to operate on a `SeekRead`
 /// implementation that refers to a file that we are doing I/O on directly.
 ///
-/// Offsets are always computed relative to the start of the file. Any seeks
-/// performed are always absolute and relative to the start of the file. The
-/// cursor position is not reset after the read is performed.
+/// Offsets are always absolute and computed from the start of the file. Any
+/// seeks performed are always absolute computed from the start of the file.
+/// The cursor position is not reset after the read is performed.
 ///
 /// The instance maintains a heap allocated buffer that is used for each read,
 /// and grown to the needed capacity for the read. The buffer never shrinks in
