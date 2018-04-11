@@ -208,12 +208,12 @@ impl<R> DefaultMementoParser<R> where R: SliceReader + Debug {
 
 impl<R> MementoParser for DefaultMementoParser<R> where R: SliceReader + Debug {
     fn read_header(&mut self) -> MementoResult<Header> {
-        let metadata_sz = Metadata::storage() as u64;
+        let metadata_sz = Metadata::storage();
         let metadata = self.reader.consume(0, metadata_sz, |v| {
             Ok(memento_parse_metadata(v).to_full_result()?)
         })?;
 
-        let infos_sz = metadata.archive_count() as u64 * ArchiveInfo::storage() as u64;
+        let infos_sz = metadata.archive_info_size();
         let infos = self.reader.consume(metadata_sz, infos_sz, |v| {
             Ok(memento_parse_archive_infos(v, &metadata).to_full_result()?)
         })?;

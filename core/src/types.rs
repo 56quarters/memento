@@ -61,13 +61,13 @@ impl Header {
 
     /// Get the amount of space required for the file header in bytes
     #[inline]
-    pub fn size(&self) -> usize {
-        Metadata::storage() + (ArchiveInfo::storage() * self.metadata.archive_count() as usize)
+    pub fn size(&self) -> u64 {
+        Metadata::storage() + (ArchiveInfo::storage() * self.metadata.archive_count() as u64)
     }
 
     /// Get the amount of space required for the entire file in bytes
     #[inline]
-    pub fn file_size(&self) -> usize {
+    pub fn file_size(&self) -> u64 {
         self.archive_info()
             .iter()
             .fold(self.size(), |acc, info| acc + info.archive_size())
@@ -117,7 +117,7 @@ impl Metadata {
     }
 
     #[inline]
-    pub fn storage() -> usize {
+    pub fn storage() -> u64 {
         16 /* bytes required for an instance */
     }
 
@@ -140,6 +140,11 @@ impl Metadata {
     pub fn archive_count(&self) -> u32 {
         self.archive_count
     }
+
+    #[inline]
+    pub fn archive_info_size(&self) -> u64 {
+        self.archive_count as u64 * ArchiveInfo::storage()
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -159,13 +164,13 @@ impl ArchiveInfo {
     }
 
     #[inline]
-    pub fn storage() -> usize {
+    pub fn storage() -> u64 {
         12 /* bytes required for an instance */
     }
 
     #[inline]
-    pub fn archive_size(&self) -> usize {
-        Point::storage() * self.num_points as usize
+    pub fn archive_size(&self) -> u64 {
+        Point::storage() * self.num_points as u64
     }
 
     #[inline]
@@ -236,7 +241,7 @@ impl Point {
     }
 
     #[inline]
-    pub fn storage() -> usize {
+    pub fn storage() -> u64 {
         12 /* bytes required for an instance */
     }
 
