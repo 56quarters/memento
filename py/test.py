@@ -12,7 +12,7 @@ print('Whisper header read', timeit.timeit(
     setup="import whisper"
 ))
 
-"""
+
 print('Memento points read', timeit.timeit(
     stmt='memento.fetch("../tests/upper_01.wsp", 1502089980, 1502259660, 1502864800)',
     setup="import memento"
@@ -22,4 +22,3 @@ print('Whisper points read', timeit.timeit(
     stmt='whisper.fetch("../tests/upper_01.wsp", 1502089980, 1502259660, 1502864800)',
     setup="import whisper"
 ))
-"""
