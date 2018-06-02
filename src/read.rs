@@ -175,38 +175,18 @@ impl Into<Vec<Point>> for FetchResponse {
 ///
 ///
 ///
-pub trait MementoParser {
-    ///
-    ///
-    ///
-    fn read_header(&mut self) -> MementoResult<Header>;
-
-    ///
-    ///
-    ///
-    fn read_database(&mut self) -> MementoResult<MementoDatabase>;
-
-    ///
-    ///
-    ///
-    fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse>;
-}
-
-///
-///
-///
 #[derive(Debug)]
-pub struct DefaultMementoParser<R> where R: SliceReader + Debug + 'static {
-    reader: R,
+pub struct MementoParser<'a, T> where T: SliceReader + Debug + 'static {
+    reader: &'a mut T,
 }
 
-impl<R> DefaultMementoParser<R> where R: SliceReader + Debug {
-    pub fn new(reader: R) -> Self {
-        DefaultMementoParser { reader: reader }
+impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
+    pub fn new(reader: &'a mut T) -> Self {
+        MementoParser { reader: reader }
     }
 }
 
-impl<R> MementoParser for DefaultMementoParser<R> where R: SliceReader + Debug {
+impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
     fn read_header(&mut self) -> MementoResult<Header> {
         let metadata_sz = Metadata::storage();
         let metadata = self.reader.consume(0, metadata_sz, |v| {
@@ -230,7 +210,7 @@ impl<R> MementoParser for DefaultMementoParser<R> where R: SliceReader + Debug {
     fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse> {
         let header = self.read_header()?;
         let range = DateRangeSearch::new();
-        range.search(&mut self.reader, &header, req)
+        range.search(self.reader, &header, req)
     }
 }
 
@@ -274,8 +254,8 @@ impl MementoFileReader {
     where
         P: AsRef<Path>
     {
-        let reader = new_direct_reader(path)?;
-        let mut parser = DefaultMementoParser::new(reader);
+        let mut reader = new_direct_reader(path)?;
+        let mut parser = MementoParser::new(&mut reader);
         parser.read_header()
     }
 
@@ -290,8 +270,8 @@ impl MementoFileReader {
     where
         P: AsRef<Path>
     {
-        let reader = new_mapped_reader(path)?;
-        let mut parser = DefaultMementoParser::new(reader);
+        let mut reader = new_mapped_reader(path)?;
+        let mut parser = MementoParser::new(&mut reader);
         parser.read_database()
     }
 
@@ -308,8 +288,8 @@ impl MementoFileReader {
     where
         P: AsRef<Path>
     {
-        let reader = new_mapped_reader(path)?;
-        let mut parser = DefaultMementoParser::new(reader);
+        let mut reader = new_mapped_reader(path)?;
+        let mut parser = MementoParser::new(&mut reader);
         parser.read_range(req)
     }
 }
@@ -356,9 +336,9 @@ impl DateRangeSearch {
             .collect()
     }
 
-    fn search<R>(&self, reader: &mut R, header: &Header, req: &FetchRequest) -> MementoResult<FetchResponse>
+    fn search<T>(&self, reader: &mut T, header: &Header, req: &FetchRequest) -> MementoResult<FetchResponse>
     where
-        R: SliceReader,
+        T: SliceReader,
     {
         // validate the that requested ranges are something that we can
         // satisfy with this database and coerce them if required. For
@@ -403,7 +383,7 @@ mod tests {
     use memento_core::encoder::{memento_encode_archive, memento_encode_header};
     use memento_core::types::{AggregationType, Archive, ArchiveInfo, Header, Metadata, Point};
 
-    use io::{SliceReader, SliceReaderMapped};
+    use io::SliceReaderMapped;
     use super::{FetchRequest, DateRangeSearch};
 
     fn get_file_header() -> Header {
