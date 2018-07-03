@@ -13,7 +13,6 @@ extern crate fs2;
 extern crate memento_core;
 extern crate memmap;
 
-mod cache;
 mod read;
 mod write;
 mod io;

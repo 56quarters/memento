@@ -187,7 +187,7 @@ impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
 }
 
 impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
-    fn read_header(&mut self) -> MementoResult<Header> {
+    pub fn read_header(&mut self) -> MementoResult<Header> {
         let metadata_sz = Metadata::storage();
         let metadata = self.reader.consume(0, metadata_sz, |v| {
             Ok(memento_parse_metadata(v).to_full_result()?)
@@ -201,13 +201,13 @@ impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
         Ok(Header::new(metadata, infos))
     }
 
-    fn read_database(&mut self) -> MementoResult<MementoDatabase> {
+    pub fn read_database(&mut self) -> MementoResult<MementoDatabase> {
         self.reader.consume_all(|v| {
             Ok(memento_parse_database(v).to_full_result()?)
         })
     }
 
-    fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse> {
+    pub fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse> {
         let header = self.read_header()?;
         let range = DateRangeSearch::new();
         range.search(self.reader, &header, req)
