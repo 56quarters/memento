@@ -2,8 +2,8 @@ extern crate chrono;
 extern crate memento;
 
 use chrono::{TimeZone, Utc};
-use memento::{MementoFileReader, FetchRequest};
 use memento::types::AggregationType;
+use memento::{FetchRequest, MementoFileReader};
 
 #[test]
 fn test_memento_file_reader_read_header() {

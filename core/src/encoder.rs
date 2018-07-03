@@ -14,8 +14,8 @@ use std::io;
 
 use byteorder::{NetworkEndian, WriteBytesExt};
 
-use types::{Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point};
 use errors::MementoResult;
+use types::{Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point};
 
 pub fn memento_encode_metadata<W>(writer: &mut W, meta: &Metadata) -> io::Result<()>
 where
@@ -88,12 +88,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata,
-                Point};
+    use types::{
+        AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point,
+    };
 
-    use super::{memento_encode_archive_infos, memento_encode_data, memento_encode_metadata,
-                memento_encode_point, memento_encode_archive, memento_encode_database,
-                memento_encode_header};
+    use super::{
+        memento_encode_archive, memento_encode_archive_infos, memento_encode_data,
+        memento_encode_database, memento_encode_header, memento_encode_metadata,
+        memento_encode_point,
+    };
 
     #[test]
     fn test_memento_encode_metadata() {

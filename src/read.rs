@@ -19,10 +19,12 @@ use chrono::{DateTime, Duration, TimeZone, Utc};
 use memmap::Mmap;
 
 use io::{SliceReader, SliceReaderDirect, SliceReaderMapped};
-use memento_core::parser::{memento_parse_archive, memento_parse_database,
-                           memento_parse_metadata, memento_parse_archive_infos};
-use memento_core::types::{Archive, ArchiveInfo, Header, MementoDatabase, Metadata, Point};
 use memento_core::errors::{ErrorKind, MementoError, MementoResult};
+use memento_core::parser::{
+    memento_parse_archive, memento_parse_archive_infos, memento_parse_database,
+    memento_parse_metadata,
+};
+use memento_core::types::{Archive, ArchiveInfo, Header, MementoDatabase, Metadata, Point};
 
 /// Request describing a time range to fetch values for.
 ///
@@ -176,17 +178,26 @@ impl Into<Vec<Point>> for FetchResponse {
 ///
 ///
 #[derive(Debug)]
-pub struct MementoParser<'a, T> where T: SliceReader + Debug + 'static {
+pub struct MementoParser<'a, T>
+where
+    T: SliceReader + Debug + 'static,
+{
     reader: &'a mut T,
 }
 
-impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
+impl<'a, T> MementoParser<'a, T>
+where
+    T: SliceReader + Debug,
+{
     pub fn new(reader: &'a mut T) -> Self {
         MementoParser { reader: reader }
     }
 }
 
-impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
+impl<'a, T> MementoParser<'a, T>
+where
+    T: SliceReader + Debug,
+{
     pub fn read_header(&mut self) -> MementoResult<Header> {
         let metadata_sz = Metadata::storage();
         let metadata = self.reader.consume(0, metadata_sz, |v| {
@@ -202,9 +213,8 @@ impl<'a, T> MementoParser<'a, T> where T: SliceReader + Debug {
     }
 
     pub fn read_database(&mut self) -> MementoResult<MementoDatabase> {
-        self.reader.consume_all(|v| {
-            Ok(memento_parse_database(v).to_full_result()?)
-        })
+        self.reader
+            .consume_all(|v| Ok(memento_parse_database(v).to_full_result()?))
     }
 
     pub fn read_range(&mut self, req: &FetchRequest) -> MementoResult<FetchResponse> {
@@ -252,7 +262,7 @@ impl MementoFileReader {
     /// malformed.
     pub fn read_header<P>(&self, path: P) -> MementoResult<Header>
     where
-        P: AsRef<Path>
+        P: AsRef<Path>,
     {
         let mut reader = new_direct_reader(path)?;
         let mut parser = MementoParser::new(&mut reader);
@@ -268,7 +278,7 @@ impl MementoFileReader {
     /// malformed.
     pub fn read_database<P>(&self, path: P) -> MementoResult<MementoDatabase>
     where
-        P: AsRef<Path>
+        P: AsRef<Path>,
     {
         let mut reader = new_mapped_reader(path)?;
         let mut parser = MementoParser::new(&mut reader);
@@ -286,7 +296,7 @@ impl MementoFileReader {
     /// database file.
     pub fn read<P>(&self, path: P, req: &FetchRequest) -> MementoResult<FetchResponse>
     where
-        P: AsRef<Path>
+        P: AsRef<Path>,
     {
         let mut reader = new_mapped_reader(path)?;
         let mut parser = MementoParser::new(&mut reader);
@@ -307,7 +317,10 @@ impl DateRangeSearch {
 
     /// Find the archive in this file that is capable of fulfilling the
     /// given request or return an error if there is no archive that can
-    fn find_archive<'b, 'c>(req: &'b FetchRequest, header: &'c Header) -> MementoResult<&'c ArchiveInfo> {
+    fn find_archive<'b, 'c>(
+        req: &'b FetchRequest,
+        header: &'c Header,
+    ) -> MementoResult<&'c ArchiveInfo> {
         let archives = header.archive_info();
         let required_retention = req.retention();
 
@@ -336,7 +349,12 @@ impl DateRangeSearch {
             .collect()
     }
 
-    fn search<T>(&self, reader: &mut T, header: &Header, req: &FetchRequest) -> MementoResult<FetchResponse>
+    fn search<T>(
+        &self,
+        reader: &mut T,
+        header: &Header,
+        req: &FetchRequest,
+    ) -> MementoResult<FetchResponse>
     where
         T: SliceReader,
     {
@@ -351,21 +369,23 @@ impl DateRangeSearch {
         // the requested ranges.
         let archive_offset = archive_info.offset() as u64;
         let archive_len = archive_info.archive_size() as u64;
-        let archive = reader.consume(archive_offset, archive_len, |v| {
-            Ok(memento_parse_archive(v, archive_info).to_full_result()?)
-        }).map_err(|e| {
-            // The reader returns an I/O error for invalid seeks or out
-            // of bounds reads. Telling people that we expected X bytes
-            // and got Y bytes isn't super useful so we translate into
-            // something a little nicer here: corrupt DB.
-            match e.kind() {
-                ErrorKind::IoError => MementoError::from((
-                    ErrorKind::CorruptDatabase,
-                    "I/O error reading archive",
-                )),
-                _ => e
-            }
-        })?;
+        let archive = reader
+            .consume(archive_offset, archive_len, |v| {
+                Ok(memento_parse_archive(v, archive_info).to_full_result()?)
+            })
+            .map_err(|e| {
+                // The reader returns an I/O error for invalid seeks or out
+                // of bounds reads. Telling people that we expected X bytes
+                // and got Y bytes isn't super useful so we translate into
+                // something a little nicer here: corrupt DB.
+                match e.kind() {
+                    ErrorKind::IoError => MementoError::from((
+                        ErrorKind::CorruptDatabase,
+                        "I/O error reading archive",
+                    )),
+                    _ => e,
+                }
+            })?;
 
         let points = Self::points_for_request(&archive, &req);
         // Include a copy of the archive info along with the points returned
@@ -379,12 +399,12 @@ impl DateRangeSearch {
 mod tests {
     use chrono::{DateTime, Utc};
 
-    use memento_core::errors::ErrorKind;
     use memento_core::encoder::{memento_encode_archive, memento_encode_header};
+    use memento_core::errors::ErrorKind;
     use memento_core::types::{AggregationType, Archive, ArchiveInfo, Header, Metadata, Point};
 
+    use super::{DateRangeSearch, FetchRequest};
     use io::SliceReaderMapped;
-    use super::{FetchRequest, DateRangeSearch};
 
     fn get_file_header() -> Header {
         let metadata = Metadata::new(

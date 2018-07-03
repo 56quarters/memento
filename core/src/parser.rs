@@ -10,9 +10,11 @@
 
 //! Functions to parse Whisper files from a stream of bytes
 
-use nom::{IResult, be_f32, be_f64, be_u32};
+use nom::{be_f32, be_f64, be_u32, IResult};
 
-use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point};
+use types::{
+    AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point,
+};
 
 named!(pub memento_parse_aggregation_type<&[u8], AggregationType>,
        switch!(be_u32,
@@ -46,12 +48,18 @@ pub fn memento_parse_archive_infos<'a, 'b>(
 ) -> IResult<&'a [u8], Vec<ArchiveInfo>> {
     let (remaining, infos) = try_parse!(
         input,
-        count!(memento_parse_archive_info, metadata.archive_count() as usize)
+        count!(
+            memento_parse_archive_info,
+            metadata.archive_count() as usize
+        )
     );
     IResult::Done(remaining, infos)
 }
 
-pub fn memento_parse_data<'a, 'b>(input: &'a [u8], infos: &'b [ArchiveInfo]) -> IResult<&'a [u8], Data> {
+pub fn memento_parse_data<'a, 'b>(
+    input: &'a [u8],
+    infos: &'b [ArchiveInfo],
+) -> IResult<&'a [u8], Data> {
     let mut archives = Vec::with_capacity(infos.len());
     let mut to_parse = input;
 
@@ -99,9 +107,10 @@ pub fn memento_parse_archive<'a, 'b>(
     input: &'a [u8],
     info: &'b ArchiveInfo,
 ) -> IResult<&'a [u8], Archive> {
-    let (remaining, points) = try_parse!(input, count!(
-        memento_parse_point, info.num_points() as usize
-    ));
+    let (remaining, points) = try_parse!(
+        input,
+        count!(memento_parse_point, info.num_points() as usize)
+    );
 
     IResult::Done(remaining, Archive::new(points))
 }
@@ -116,13 +125,15 @@ named!(pub memento_parse_database<&[u8], MementoDatabase>,
 
 #[cfg(test)]
 mod tests {
-    use types::{AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata,
-                Point};
+    use types::{
+        AggregationType, Archive, ArchiveInfo, Data, Header, MementoDatabase, Metadata, Point,
+    };
 
-    use super::{memento_parse_archive, memento_parse_database, memento_parse_header,
-                memento_parse_aggregation_type, memento_parse_archive_info,
-                memento_parse_archive_infos, memento_parse_data, memento_parse_metadata,
-                memento_parse_point};
+    use super::{
+        memento_parse_aggregation_type, memento_parse_archive, memento_parse_archive_info,
+        memento_parse_archive_infos, memento_parse_data, memento_parse_database,
+        memento_parse_header, memento_parse_metadata, memento_parse_point,
+    };
 
     #[test]
     fn test_memento_parse_aggregation_type() {

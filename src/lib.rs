@@ -13,11 +13,11 @@ extern crate fs2;
 extern crate memento_core;
 extern crate memmap;
 
+mod io;
 mod read;
 mod write;
-mod io;
 
-pub use memento_core::types;
-pub use memento_core::errors;
 pub use io::{SeekRead, SliceReader, SliceReaderDirect, SliceReaderMapped};
-pub use read::{FetchRequest, FetchResponse, MementoParser, MementoFileReader};
+pub use memento_core::errors;
+pub use memento_core::types;
+pub use read::{FetchRequest, FetchResponse, MementoFileReader, MementoParser};

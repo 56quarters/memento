@@ -11,8 +11,8 @@
 //! Core types for the Whisper library
 
 use std::error;
-use std::io;
 use std::fmt;
+use std::io;
 
 use nom;
 

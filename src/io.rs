@@ -10,9 +10,9 @@
 
 //! Functions to read parts of the Whisper format from disk
 
-use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use std::fmt::{self, Debug};
 use std::fs::File;
+use std::io::{self, Cursor, Read, Seek, SeekFrom};
 
 use memento_core::errors::{MementoError, MementoResult};
 
@@ -82,7 +82,10 @@ pub struct SliceReaderMapped {
 impl SliceReaderMapped {
     /// Create a new `SliceReaderMapped` instance that consumes bytes from the
     /// provided byte range (typically a memory mapped file).
-    pub fn new<M>(map: M) -> Self where M: AsRef<[u8]> + 'static {
+    pub fn new<M>(map: M) -> Self
+    where
+        M: AsRef<[u8]> + 'static,
+    {
         SliceReaderMapped { map: Box::new(map) }
     }
 
@@ -97,15 +100,15 @@ impl SliceReaderMapped {
         if start >= max {
             return Err(MementoError::from(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("read range start too large. start {}, max {}", start, max)
-            )))
+                format!("read range start too large. start {}, max {}", start, max),
+            )));
         }
 
         if end > max {
             return Err(MementoError::from(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("read range end too large. end {}, max {}", end, max)
-            )))
+                format!("read range end too large. end {}, max {}", end, max),
+            )));
         }
 
         consumer(&self.map.as_ref().as_ref()[start..end])
@@ -166,10 +169,13 @@ impl SliceReaderDirect {
     /// Create a new `SliceReaderDirect` instance that consumes bytes from the
     /// provided reader. The buffer used for reads is allocated upon creation
     /// with a default size appropriate for reading a Whisper file header.
-    pub fn new<R>(reader: R) -> Self where R: SeekRead + 'static {
+    pub fn new<R>(reader: R) -> Self
+    where
+        R: SeekRead + 'static,
+    {
         SliceReaderDirect {
             buffer: Vec::with_capacity(DEFAULT_DIRECT_IO_BUFFER),
-            reader: Box::new(reader)
+            reader: Box::new(reader),
         }
     }
 
@@ -206,8 +212,8 @@ impl SliceReaderDirect {
         if bytes_read == 0 {
             return Err(MementoError::from(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("no bytes to read. offset {}", offset)
-            )))
+                format!("no bytes to read. offset {}", offset),
+            )));
         }
 
         // If there was an explicit number of bytes we were supposed to read
@@ -217,8 +223,8 @@ impl SliceReaderDirect {
             if (bytes_read as u64) < v {
                 return Err(MementoError::from(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    format!("short read. wanted {}, read {}", v, bytes_read)
-                )))
+                    format!("short read. wanted {}, read {}", v, bytes_read),
+                )));
             }
         }
 
@@ -251,15 +257,19 @@ impl SliceReader for SliceReaderDirect {
 
 impl Debug for SliceReaderDirect {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "SliceReaderDirect {{ buffer: {:?}, reader: {{...}} }}", self.buffer)
+        write!(
+            f,
+            "SliceReaderDirect {{ buffer: {:?}, reader: {{...}} }}",
+            self.buffer
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Cursor};
+    use super::{SliceReader, SliceReaderDirect, SliceReaderMapped};
     use memento_core::errors::ErrorKind;
-    use super::{SliceReader, SliceReaderMapped, SliceReaderDirect};
+    use std::io::Cursor;
 
     fn get_bytes() -> Vec<u8> {
         vec![0xDE, 0xAD, 0xBE, 0xEF]
@@ -271,9 +281,7 @@ mod tests {
         let expected = map.clone();
 
         let mut slice_reader = SliceReaderMapped::new(map);
-        let res = slice_reader.consume_all(|v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume_all(|v| Ok(Vec::from(v)));
 
         assert_eq!(expected, res.unwrap());
     }
@@ -284,9 +292,7 @@ mod tests {
         let expected = map.clone();
 
         let mut slice_reader = SliceReaderMapped::new(map);
-        let res = slice_reader.consume_from(0, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume_from(0, |v| Ok(Vec::from(v)));
 
         assert_eq!(expected, res.unwrap());
     }
@@ -295,9 +301,7 @@ mod tests {
     fn test_slice_reader_mapped_consume_from_bad_offset() {
         let map = get_bytes();
         let mut slice_reader = SliceReaderMapped::new(map);
-        let res = slice_reader.consume_from(4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume_from(4, |v| Ok(Vec::from(v)));
 
         let err = res.unwrap_err();
         assert_eq!(ErrorKind::IoError, err.kind());
@@ -309,9 +313,7 @@ mod tests {
         let expected = map.clone();
 
         let mut slice_reader = SliceReaderMapped::new(map);
-        let res = slice_reader.consume(0, 4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume(0, 4, |v| Ok(Vec::from(v)));
 
         assert_eq!(expected, res.unwrap());
     }
@@ -320,9 +322,7 @@ mod tests {
     fn test_slice_reader_mapping_consume_bad_offset() {
         let map = get_bytes();
         let mut slice_reader = SliceReaderMapped::new(map);
-        let res = slice_reader.consume(4, 4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume(4, 4, |v| Ok(Vec::from(v)));
 
         let err = res.unwrap_err();
         assert_eq!(ErrorKind::IoError, err.kind());
@@ -332,9 +332,7 @@ mod tests {
     fn test_slice_reader_mapping_consume_bad_length() {
         let map = get_bytes();
         let mut slice_reader = SliceReaderMapped::new(map);
-        let res = slice_reader.consume(2, 4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume(2, 4, |v| Ok(Vec::from(v)));
 
         let err = res.unwrap_err();
         assert_eq!(ErrorKind::IoError, err.kind());
@@ -347,9 +345,7 @@ mod tests {
         let reader = Cursor::new(bytes);
 
         let mut slice_reader = SliceReaderDirect::new(reader);
-        let res = slice_reader.consume_all(|v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume_all(|v| Ok(Vec::from(v)));
 
         assert_eq!(expected, res.unwrap());
     }
@@ -361,9 +357,7 @@ mod tests {
         let reader = Cursor::new(bytes);
 
         let mut slice_reader = SliceReaderDirect::new(reader);
-        let res = slice_reader.consume_from(0, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume_from(0, |v| Ok(Vec::from(v)));
 
         assert_eq!(expected, res.unwrap());
     }
@@ -374,9 +368,7 @@ mod tests {
         let reader = Cursor::new(bytes);
 
         let mut slice_reader = SliceReaderDirect::new(reader);
-        let res = slice_reader.consume_from(4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume_from(4, |v| Ok(Vec::from(v)));
 
         let err = res.unwrap_err();
         assert_eq!(ErrorKind::IoError, err.kind());
@@ -389,9 +381,7 @@ mod tests {
         let reader = Cursor::new(bytes);
 
         let mut slice_reader = SliceReaderDirect::new(reader);
-        let res = slice_reader.consume(0, 4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume(0, 4, |v| Ok(Vec::from(v)));
 
         assert_eq!(expected, res.unwrap());
     }
@@ -402,9 +392,7 @@ mod tests {
         let reader = Cursor::new(bytes);
 
         let mut slice_reader = SliceReaderDirect::new(reader);
-        let res = slice_reader.consume(4, 4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume(4, 4, |v| Ok(Vec::from(v)));
 
         let err = res.unwrap_err();
         assert_eq!(ErrorKind::IoError, err.kind());
@@ -416,9 +404,7 @@ mod tests {
         let reader = Cursor::new(bytes);
 
         let mut slice_reader = SliceReaderDirect::new(reader);
-        let res = slice_reader.consume(2, 4, |v| {
-            Ok(Vec::from(v))
-        });
+        let res = slice_reader.consume(2, 4, |v| Ok(Vec::from(v)));
 
         let err = res.unwrap_err();
         assert_eq!(ErrorKind::IoError, err.kind());

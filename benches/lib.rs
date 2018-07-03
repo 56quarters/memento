@@ -4,8 +4,8 @@ extern crate memento;
 extern crate test;
 
 use chrono::{TimeZone, Utc};
-use test::Bencher;
 use memento::{FetchRequest, MementoFileReader};
+use test::Bencher;
 
 #[bench]
 fn benchmark_memento_file_reader_read_header(b: &mut Bencher) {
